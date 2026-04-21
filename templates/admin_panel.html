@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Админка{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h1>Админ-панель</h1>
+  <p><a href="{{ url_for('admin_logout') }}">Выйти из админки</a></p>
+</div>
+
+{% for user in users %}
+<div class="card">
+  <form method="post" action="{{ url_for('admin_update_user', user_id=user.id) }}">
+    <p><strong>ID:</strong> {{ user.id }}</p>
+
+    <label>ФИО</label>
+    <input type="text" name="full_name" value="{{ user.full_name }}" required>
+
+    <label>Статус</label>
+    <select name="status">
+      <option value="new" {% if user.status == 'new' %}selected{% endif %}>new</option>
+      <option value="pending" {% if user.status == 'pending' %}selected{% endif %}>pending</option>
+      <option value="active" {% if user.status == 'active' %}selected{% endif %}>active</option>
+      <option value="expired" {% if user.status == 'expired' %}selected{% endif %}>expired</option>
+    </select>
+
+    <label>Ссылка подписки</label>
+    <input type="text" name="subscription_url" value="{{ user.subscription_url or '' }}">
+
+    <label>Ссылка на инструкцию</label>
+    <input type="text" name="instructions_url" value="{{ user.instructions_url or '/instructions' }}">
+
+    <label>Дата окончания</label>
+    <input type="text" name="expires_at" value="{{ user.expires_at or '' }}" placeholder="2026-05-20">
+
+    <div class="actions">
+      <button type="submit">Сохранить</button>
+    </div>
+  </form>
+
+  <form method="post" action="{{ url_for('admin_delete_user', user_id=user.id) }}">
+    <button type="submit" onclick="return confirm('Удалить пользователя?')">Удалить пользователя</button>
+  </form>
+</div>
+{% else %}
+<div class="card">
+  <p>Пользователей пока нет.</p>
+</div>
+{% endfor %}
+{% endblock %}
