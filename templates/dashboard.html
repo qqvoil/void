@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Личный кабинет{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h1>Личный кабинет</h1>
+  <p><strong>Пользователь:</strong> {{ user.full_name }}</p>
+  <p><strong>Статус:</strong> {{ user.status }}</p>
+  <p><strong>Действует до:</strong> {{ user.expires_at or '—' }}</p>
+
+  {% if user.status == 'active' %}
+    <hr>
+    <p><strong>Ссылка на подписку:</strong></p>
+    {% if user.subscription_url %}
+      <p><a href="{{ user.subscription_url }}" target="_blank">{{ user.subscription_url }}</a></p>
+    {% else %}
+      <p>Ссылка пока не добавлена.</p>
+    {% endif %}
+
+    <p>
+      <a href="{{ user.instructions_url or url_for('instructions') }}">
+        Инструкция по установке
+      </a>
+    </p>
+  {% else %}
+    <hr>
+    <p>Подписка пока не оформлена или не активна.</p>
+    <p>Для оформления или продления свяжитесь со мной:</p>
+    <ul>
+      <li>Telegram: {{ contact_telegram }}</li>
+      <li>Email: {{ contact_email }}</li>
+      <li>Телефон: {{ contact_phone }}</li>
+    </ul>
+  {% endif %}
+
+  <p><a href="{{ url_for('logout') }}">Выйти</a></p>
+</div>
+{% endblock %}
