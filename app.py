@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from datetime import timedelta
 from functools import wraps
 
 from flask import (
@@ -22,6 +23,11 @@ SCHEMA_PATH = os.path.join(BASE_DIR, "schema.sql")
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.config["DATABASE"] = DATABASE
+
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_REFRESH_EACH_REQUEST"] = True
 
 ADMIN_LOGIN = os.environ.get("ADMIN_LOGIN", "admin")
 ADMIN_PASSWORD_HASH = os.environ.get("ADMIN_PASSWORD_HASH", "")
@@ -74,6 +80,7 @@ def login_required(view):
         if not session.get("user_id"):
             return redirect(url_for("login"))
         return view(*args, **kwargs)
+
     return wrapped_view
 
 
@@ -83,6 +90,7 @@ def admin_required(view):
         if not session.get("is_admin"):
             return redirect(url_for("admin_login"))
         return view(*args, **kwargs)
+
     return wrapped_view
 
 
@@ -107,11 +115,15 @@ def inject_globals():
 
 @app.route("/")
 def index():
+    if session.get("is_admin"):
+        return redirect(url_for("admin_panel"))
+    if session.get("user_id"):
+        return redirect(url_for("dashboard"))
     return render_template("index.html")
+
 
 @app.route("/init-db")
 def init_db_route():
-    # Используй один раз локально, потом лучше убрать этот роут.
     init_db()
     return "Database initialized."
 
@@ -174,6 +186,7 @@ def login():
 
         if user and check_password_hash(user["password_hash"], password):
             session.clear()
+            session.permanent = True
             session["user_id"] = user["id"]
             return redirect(url_for("dashboard"))
 
@@ -185,7 +198,7 @@ def login():
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect(url_for("login"))
+    return redirect(url_for("index"))
 
 
 @app.route("/dashboard")
@@ -218,6 +231,7 @@ def admin_login():
             ADMIN_PASSWORD_HASH, password
         ):
             session.clear()
+            session.permanent = True
             session["is_admin"] = True
             return redirect(url_for("admin_panel"))
 
