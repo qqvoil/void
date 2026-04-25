@@ -31,6 +31,10 @@ body {
   overflow-x: hidden;
 }
 
+body.menu-open {
+  overflow: hidden;
+}
+
 img {
   display: block;
   max-width: 100%;
@@ -128,24 +132,221 @@ textarea {
   margin: 0 auto;
 }
 
+/* fixed chrome */
+
 .top-mark {
   position: fixed;
-  top: 24px;
-  left: 50%;
-  transform: translateX(-50%) translateY(-18px);
+  top: 18px;
+  left: 0;
   opacity: 0;
   z-index: 60;
   pointer-events: none;
   will-change: transform, opacity;
+  transform: translate3d(0, 0, 0);
 }
 
 .top-mark img {
-  width: 116px;
+  width: 112px;
   opacity: 0.94;
   filter:
     drop-shadow(0 0 12px rgba(255, 255, 255, 0.06))
     drop-shadow(0 0 28px rgba(255, 255, 255, 0.04));
 }
+
+.void-site.menu-open .top-mark {
+  opacity: 0 !important;
+}
+
+.landing-menu {
+  position: fixed;
+  top: 16px;
+  left: 0;
+  z-index: 140;
+  will-change: transform, opacity;
+  transform: translate3d(0, 0, 0);
+}
+
+.landing-menu__trigger {
+  width: 34px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    color 500ms var(--ease-slow),
+    filter 500ms var(--ease-slow),
+    opacity 500ms var(--ease-slow);
+}
+
+.landing-menu__trigger:hover {
+  color: #ffffff;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.18));
+}
+
+.landing-menu__bars {
+  width: 22px;
+  height: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.landing-menu__bar {
+  width: 100%;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+  transform-origin: center;
+  transition:
+    transform 700ms var(--ease-slow),
+    opacity 700ms var(--ease-slow);
+}
+
+.landing-menu.is-open .landing-menu__bar:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.landing-menu.is-open .landing-menu__bar:nth-child(2) {
+  opacity: 0;
+}
+
+.landing-menu.is-open .landing-menu__bar:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* overlay */
+
+.menu-overlay {
+  --menu-anchor-x: 50vw;
+  --menu-anchor-top: 64px;
+  --menu-panel-width: 540px;
+
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 500ms var(--ease-slow),
+    visibility 500ms var(--ease-slow),
+    background 500ms var(--ease-slow),
+    backdrop-filter 500ms var(--ease-slow),
+    -webkit-backdrop-filter 500ms var(--ease-slow);
+}
+
+.menu-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  background: rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.menu-overlay__panel {
+  position: absolute;
+  top: var(--menu-anchor-top);
+  width: var(--menu-panel-width);
+  left: clamp(
+    24px,
+    calc(var(--menu-anchor-x) - (var(--menu-panel-width) / 2)),
+    calc(100vw - var(--menu-panel-width) - 24px)
+  );
+  padding: 6px 0 0;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition:
+    opacity 650ms var(--ease-slow),
+    transform 650ms var(--ease-slow);
+}
+
+.menu-overlay.is-open .menu-overlay__panel {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.menu-overlay__panel::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.menu-overlay__link {
+  position: relative;
+  min-height: 66px;
+  display: grid;
+  grid-template-columns: 1fr 26px;
+  align-items: center;
+  gap: 16px;
+  padding: 0 0 0 2px;
+  color: rgba(240, 234, 229, 0.84);
+  transition:
+    color 400ms var(--ease-slow),
+    opacity 400ms var(--ease-slow),
+    transform 400ms var(--ease-slow);
+}
+
+.menu-overlay__link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.menu-overlay__link:hover {
+  color: rgba(255, 255, 255, 0.96);
+}
+
+.menu-overlay__text {
+  text-align: left;
+  font-family: "Cormorant Garamond", serif;
+  font-size: clamp(1.7rem, 2.15vw, 2.1rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.003em;
+}
+
+.menu-overlay__icon {
+  width: 24px;
+  height: 24px;
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(240, 234, 229, 0.64);
+  transition:
+    color 400ms var(--ease-slow),
+    transform 400ms var(--ease-slow),
+    opacity 400ms var(--ease-slow);
+}
+
+.menu-overlay__link:hover .menu-overlay__icon {
+  color: rgba(255, 255, 255, 0.9);
+  transform: translateX(1px);
+}
+
+.menu-overlay__icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* hero */
 
 .hero-screen {
   display: flex;
@@ -184,7 +385,7 @@ textarea {
   color: rgba(255, 255, 255, 0.82);
 }
 
-/* buttons: stable soft glow */
+/* buttons */
 
 .hero-button,
 .section-button,
@@ -272,6 +473,8 @@ textarea {
 .hero-button__icon--solo {
   transform: translateY(1px);
 }
+
+/* pricing */
 
 .plans-screen {
   display: flex;
@@ -391,10 +594,7 @@ textarea {
   cursor: pointer;
 }
 
-.section-button__icon {
-  font-size: 1.1rem;
-  line-height: 1;
-}
+/* entry */
 
 .entry-screen {
   display: flex;
@@ -439,16 +639,13 @@ textarea {
   letter-spacing: 0.005em;
 }
 
-.entry-btn--primary {
-  background: #ececec;
-  border-color: #ececec;
-  color: #050505;
-}
-
+.entry-btn--primary,
 .entry-btn--ghost {
   background: rgba(255, 255, 255, 0.03);
   color: rgba(255, 255, 255, 0.94);
 }
+
+/* responsive */
 
 @media (max-width: 1100px) {
   .content-shell {
@@ -473,6 +670,47 @@ textarea {
 }
 
 @media (max-width: 900px) {
+  .landing-menu {
+    top: 12px;
+  }
+
+  .landing-menu__trigger {
+    width: 32px;
+    height: 24px;
+  }
+
+  .landing-menu__bars {
+    width: 20px;
+    height: 14px;
+  }
+
+  .menu-overlay {
+    --menu-panel-width: calc(100vw - 24px);
+  }
+
+  .menu-overlay__panel {
+    left: 12px;
+    right: 12px;
+    width: auto;
+  }
+
+  .menu-overlay__link {
+    min-height: 58px;
+    grid-template-columns: 1fr 24px;
+    gap: 12px;
+    padding: 0;
+  }
+
+  .menu-overlay__text {
+    font-size: clamp(1.5rem, 5.8vw, 1.9rem);
+  }
+
+  .menu-overlay__icon,
+  .menu-overlay__icon svg {
+    width: 22px;
+    height: 22px;
+  }
+
   .top-mark img {
     width: 96px;
   }

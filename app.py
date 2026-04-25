@@ -195,7 +195,6 @@ def dashboard():
 
 
 @app.route("/instructions")
-@login_required
 def instructions():
     return render_template("instructions.html")
 
