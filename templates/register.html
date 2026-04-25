@@ -2,21 +2,304 @@
 {% block title %}Регистрация{% endblock %}
 
 {% block content %}
-<div class="card">
-  <h1>Регистрация</h1>
-  <form method="post">
-    <label>ФИО</label>
-    <input type="text" name="full_name" required>
+<style>
+  .reg-page {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 120px 24px 48px;
+    overflow: hidden;
+  }
 
-    <label>Пароль</label>
-    <input type="password" name="password" required>
+  .reg-page::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.03), transparent 22%),
+      radial-gradient(circle at 18% 78%, rgba(255, 255, 255, 0.015), transparent 24%),
+      radial-gradient(circle at 82% 72%, rgba(255, 255, 255, 0.012), transparent 24%);
+    filter: blur(18px);
+    opacity: 0.9;
+  }
 
-    <label>Подтверждение пароля</label>
-    <input type="password" name="confirm_password" required>
+  .reg-topmark {
+    position: absolute;
+    top: 26px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    pointer-events: none;
+  }
 
-    <button type="submit">Зарегистрироваться</button>
-  </form>
+  .reg-topmark img {
+    width: 110px;
+    opacity: 0.94;
+    filter:
+      drop-shadow(0 0 12px rgba(255, 255, 255, 0.07))
+      drop-shadow(0 0 28px rgba(255, 255, 255, 0.04));
+  }
 
-  <p><a href="{{ url_for('login') }}">Уже есть аккаунт? Войти</a></p>
+  .reg-shell {
+    position: relative;
+    z-index: 2;
+    width: min(560px, 100%);
+  }
+
+  .reg-card {
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 28px;
+    padding: 34px 30px 28px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.008)),
+      rgba(8, 8, 8, 0.72);
+    backdrop-filter: blur(18px);
+    box-shadow:
+      0 30px 80px rgba(0, 0, 0, 0.42),
+      inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    overflow: hidden;
+  }
+
+  .reg-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.04), transparent 28%);
+    opacity: 0.5;
+  }
+
+  .reg-head {
+    position: relative;
+    z-index: 1;
+    margin-bottom: 26px;
+    text-align: center;
+  }
+
+  .reg-kicker {
+    display: inline-block;
+    margin-bottom: 10px;
+    color: rgba(255, 255, 255, 0.38);
+    font-size: 0.72rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+
+  .reg-title {
+    margin: 0;
+    font-family: "Cormorant Garamond", serif;
+    font-size: clamp(2.6rem, 5vw, 3.8rem);
+    line-height: 0.95;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: rgba(245, 241, 238, 0.96);
+  }
+
+  .reg-subtitle {
+    margin: 14px auto 0;
+    max-width: 420px;
+    color: rgba(240, 234, 229, 0.52);
+    font-size: 0.98rem;
+    line-height: 1.5;
+  }
+
+  .reg-form {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 16px;
+  }
+
+  .reg-field {
+    display: grid;
+    gap: 8px;
+  }
+
+  .reg-label {
+    color: rgba(240, 234, 229, 0.72);
+    font-size: 0.92rem;
+    letter-spacing: 0.01em;
+  }
+
+  .reg-input {
+    width: 100%;
+    height: 58px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    padding: 0 18px;
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(245, 241, 238, 0.96);
+    outline: none;
+    transition:
+      border-color 400ms cubic-bezier(0.22, 1, 0.36, 1),
+      background 400ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 400ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .reg-input::placeholder {
+    color: rgba(240, 234, 229, 0.26);
+  }
+
+  .reg-input:focus {
+    border-color: rgba(255, 255, 255, 0.26);
+    background: rgba(255, 255, 255, 0.045);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.06),
+      0 0 18px rgba(255, 255, 255, 0.04);
+  }
+
+  .reg-submit {
+    margin-top: 6px;
+    height: 62px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(245, 241, 238, 0.96);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition:
+      background 700ms cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 700ms cubic-bezier(0.22, 1, 0.36, 1),
+      color 700ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .reg-submit:hover {
+    background: #f1f1f1;
+    color: #050505;
+    border-color: rgba(255, 255, 255, 0.9);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      inset 0 -18px 28px rgba(0, 0, 0, 0.1),
+      0 0 28px rgba(255, 255, 255, 0.08);
+  }
+
+  .reg-bottom {
+    position: relative;
+    z-index: 1;
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    text-align: center;
+  }
+
+  .reg-bottom p {
+    margin: 0;
+    color: rgba(240, 234, 229, 0.48);
+    font-size: 0.95rem;
+  }
+
+  .reg-link {
+    color: rgba(245, 241, 238, 0.88);
+    transition: color 300ms ease;
+  }
+
+  .reg-link:hover {
+    color: #ffffff;
+  }
+
+  @media (max-width: 640px) {
+    .reg-page {
+      padding: 104px 16px 24px;
+    }
+
+    .reg-topmark img {
+      width: 96px;
+    }
+
+    .reg-card {
+      padding: 28px 18px 22px;
+      border-radius: 22px;
+    }
+
+    .reg-title {
+      font-size: clamp(2.2rem, 9vw, 3rem);
+    }
+
+    .reg-subtitle {
+      font-size: 0.92rem;
+    }
+
+    .reg-input {
+      height: 54px;
+      padding: 0 16px;
+      border-radius: 14px;
+    }
+
+    .reg-submit {
+      height: 58px;
+    }
+  }
+</style>
+
+<div class="reg-page">
+  <div class="reg-topmark" aria-hidden="true">
+    <img src="{{ url_for('static', filename='img/minimal.png') }}" alt="Void">
+  </div>
+
+  <div class="reg-shell">
+    <div class="reg-card">
+      <div class="reg-head">
+        <span class="reg-kicker">Void Portal</span>
+        <h1 class="reg-title">Регистрация</h1>
+        <p class="reg-subtitle">
+          Создай аккаунт, чтобы получить доступ к личному кабинету и подключению.
+        </p>
+      </div>
+
+      <form method="post" class="reg-form">
+        <div class="reg-field">
+          <label class="reg-label" for="full_name">ФИО</label>
+          <input
+            class="reg-input"
+            type="text"
+            id="full_name"
+            name="full_name"
+            placeholder="Введите ФИО"
+            required
+          >
+        </div>
+
+        <div class="reg-field">
+          <label class="reg-label" for="password">Пароль</label>
+          <input
+            class="reg-input"
+            type="password"
+            id="password"
+            name="password"
+            placeholder="Придумай пароль"
+            required
+          >
+        </div>
+
+        <div class="reg-field">
+          <label class="reg-label" for="confirm_password">Подтверждение пароля</label>
+          <input
+            class="reg-input"
+            type="password"
+            id="confirm_password"
+            name="confirm_password"
+            placeholder="Повтори пароль"
+            required
+          >
+        </div>
+
+        <button type="submit" class="reg-submit">Зарегистрироваться</button>
+      </form>
+
+      <div class="reg-bottom">
+        <p>
+          Уже есть аккаунт?
+          <a href="{{ url_for('login') }}" class="reg-link">Войти</a>
+        </p>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
