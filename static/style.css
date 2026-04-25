@@ -224,7 +224,7 @@ textarea {
 .menu-overlay {
   --menu-anchor-x: 50vw;
   --menu-anchor-top: 64px;
-  --menu-panel-width: 540px;
+  --menu-panel-width: 460px;
 
   position: fixed;
   inset: 0;
@@ -261,7 +261,7 @@ textarea {
     calc(var(--menu-anchor-x) - (var(--menu-panel-width) / 2)),
     calc(100vw - var(--menu-panel-width) - 24px)
   );
-  padding: 6px 0 0;
+  padding: 10px 0 0;
   opacity: 0;
   transform: translateY(-8px);
   transition:
@@ -274,25 +274,39 @@ textarea {
   transform: translateY(0);
 }
 
-.menu-overlay__panel::before {
+.menu-overlay__panel::before,
+.menu-overlay__panel::after {
   content: "";
   position: absolute;
   left: 0;
   right: 0;
-  top: 0;
   height: 1px;
-  background: rgba(255, 255, 255, 0.12);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0.12) 14%,
+    rgba(255, 255, 255, 0.12) 86%,
+    rgba(255, 255, 255, 0)
+  );
+}
+
+.menu-overlay__panel::before {
+  top: 0;
+}
+
+.menu-overlay__panel::after {
+  bottom: 0;
 }
 
 .menu-overlay__link {
   position: relative;
-  min-height: 66px;
+  min-height: 72px;
   display: grid;
-  grid-template-columns: 1fr 26px;
+  grid-template-columns: 1fr 24px;
   align-items: center;
-  gap: 16px;
-  padding: 0 0 0 2px;
-  color: rgba(240, 234, 229, 0.84);
+  gap: 18px;
+  padding: 0 8px 0 6px;
+  color: rgba(255, 255, 255, 0.9);
   transition:
     color 400ms var(--ease-slow),
     opacity 400ms var(--ease-slow),
@@ -306,44 +320,49 @@ textarea {
   right: 0;
   bottom: 0;
   height: 1px;
-  background: rgba(255, 255, 255, 0.12);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0.1) 14%,
+    rgba(255, 255, 255, 0.1) 86%,
+    rgba(255, 255, 255, 0)
+  );
 }
 
 .menu-overlay__link:hover {
-  color: rgba(255, 255, 255, 0.96);
+  color: #ffffff;
 }
 
 .menu-overlay__text {
   text-align: left;
   font-family: "Cormorant Garamond", serif;
-  font-size: clamp(1.7rem, 2.15vw, 2.1rem);
+  font-size: clamp(2rem, 3vw, 2.75rem);
   font-weight: 600;
   line-height: 1;
-  letter-spacing: 0.003em;
+  letter-spacing: 0.01em;
 }
 
 .menu-overlay__icon {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   justify-self: end;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: rgba(240, 234, 229, 0.64);
+  color: rgba(255, 255, 255, 0.72);
   transition:
     color 400ms var(--ease-slow),
-    transform 400ms var(--ease-slow),
-    opacity 400ms var(--ease-slow);
+    transform 400ms var(--ease-slow);
 }
 
 .menu-overlay__link:hover .menu-overlay__icon {
-  color: rgba(255, 255, 255, 0.9);
-  transform: translateX(1px);
+  color: #ffffff;
+  transform: translateX(2px);
 }
 
 .menu-overlay__icon svg {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
 }
 
 /* hero */
@@ -733,6 +752,10 @@ textarea {
     width: min(1000px, calc(100% - 64px));
   }
 
+  .entry-footer {
+    width: min(1000px, calc(100% - 64px));
+  }
+
   .hero-logo {
     width: min(980px, 82vw);
   }
@@ -747,10 +770,6 @@ textarea {
 
   .entry-btn {
     font-size: 1.14rem;
-  }
-
-  .entry-footer {
-    width: min(1000px, calc(100% - 64px));
   }
 }
 
@@ -770,24 +789,24 @@ textarea {
   }
 
   .menu-overlay {
-    --menu-panel-width: calc(100vw - 24px);
+    --menu-panel-width: calc(100vw - 32px);
   }
 
   .menu-overlay__panel {
-    left: 12px;
-    right: 12px;
+    left: 16px;
+    right: 16px;
     width: auto;
   }
 
   .menu-overlay__link {
-    min-height: 58px;
-    grid-template-columns: 1fr 24px;
-    gap: 12px;
-    padding: 0;
+    min-height: 64px;
+    grid-template-columns: 1fr 22px;
+    gap: 14px;
+    padding: 0 4px;
   }
 
   .menu-overlay__text {
-    font-size: clamp(1.5rem, 5.8vw, 1.9rem);
+    font-size: clamp(1.55rem, 6.4vw, 2.1rem);
   }
 
   .menu-overlay__icon,
