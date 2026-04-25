@@ -190,3 +190,118 @@ function animate() {
 }
 
 requestAnimationFrame(animate);
+
+/* ===== DASHBOARD ===== */
+
+function fallbackCopyText(text) {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.top = "-9999px";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+
+  let success = false;
+
+  try {
+    success = document.execCommand("copy");
+  } catch (err) {
+    success = false;
+  }
+
+  document.body.removeChild(textarea);
+  return success;
+}
+
+async function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text);
+    return true;
+  }
+
+  return fallbackCopyText(text);
+}
+
+(() => {
+  const copyBtn = document.getElementById("copySubscriptionBtn");
+  const subscriptionText = document.getElementById("subscriptionText");
+
+  if (copyBtn && subscriptionText) {
+    copyBtn.addEventListener("click", async () => {
+      const text = subscriptionText.textContent.trim();
+      const original = copyBtn.textContent;
+
+      try {
+        const success = await copyText(text);
+
+        if (!success) {
+          throw new Error("copy failed");
+        }
+
+        copyBtn.textContent = "Ссылка скопирована";
+      } catch (err) {
+        copyBtn.textContent = "Не удалось скопировать";
+      }
+
+      setTimeout(() => {
+        copyBtn.textContent = original;
+      }, 1400);
+    });
+  }
+
+  const dashMenu = document.getElementById("dashMenu");
+  const dashMenuTrigger = document.getElementById("dashMenuTrigger");
+  const dashMenuOverlay = document.getElementById("dashMenuOverlay");
+  const dashMenuLinks = document.querySelectorAll(".dash-menu-link");
+
+  if (!dashMenu || !dashMenuTrigger || !dashMenuOverlay) {
+    return;
+  }
+
+  const closeDashMenu = () => {
+    dashMenu.classList.remove("is-open");
+    dashMenuOverlay.classList.remove("is-open");
+    dashMenuTrigger.setAttribute("aria-expanded", "false");
+    dashMenuOverlay.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("menu-open");
+  };
+
+  const openDashMenu = () => {
+    dashMenu.classList.add("is-open");
+    dashMenuOverlay.classList.add("is-open");
+    dashMenuTrigger.setAttribute("aria-expanded", "true");
+    dashMenuOverlay.setAttribute("aria-hidden", "false");
+    document.body.classList.add("menu-open");
+  };
+
+  dashMenuTrigger.addEventListener("click", (event) => {
+    event.stopPropagation();
+
+    if (dashMenu.classList.contains("is-open")) {
+      closeDashMenu();
+    } else {
+      openDashMenu();
+    }
+  });
+
+  dashMenuOverlay.addEventListener("click", (event) => {
+    if (event.target === dashMenuOverlay) {
+      closeDashMenu();
+    }
+  });
+
+  dashMenuLinks.forEach((link) => {
+    link.addEventListener("click", () => {
+      closeDashMenu();
+    });
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeDashMenu();
+    }
+  });
+})();
