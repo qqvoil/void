@@ -107,12 +107,7 @@ def inject_globals():
 
 @app.route("/")
 def index():
-    if session.get("is_admin"):
-        return redirect(url_for("admin_panel"))
-    if session.get("user_id"):
-        return redirect(url_for("dashboard"))
-    return redirect(url_for("login"))
-
+    return render_template("index.html")
 
 @app.route("/init-db")
 def init_db_route():

@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Void{% endblock %}
+
+{% block content %}
+<div class="void-site">
+  <div class="void-grain"></div>
+  <div class="void-vignette"></div>
+
+  <header class="top-mark" id="topMark" aria-hidden="true">
+    <img src="{{ url_for('static', filename='img/minimal.png') }}" alt="Void">
+  </header>
+
+  <section class="screen hero-screen" id="hero">
+    <div class="hero-shell">
+      <img
+        src="{{ url_for('static', filename='img/logo.png') }}"
+        alt="Void"
+        class="hero-logo"
+        id="heroLogo"
+      >
+
+      <p class="hero-tagline">
+        Тишина снаружи. Свобода внутри.
+      </p>
+
+      <button
+        class="hero-button hero-button--icon"
+        data-target="#plans"
+        type="button"
+        aria-label="Прокрутить вниз"
+      >
+        <span class="hero-button__icon hero-button__icon--solo">↓</span>
+      </button>
+    </div>
+  </section>
+
+  <section class="screen plans-screen" id="plans">
+    <div class="content-shell">
+      <div class="section-head">
+        <span class="section-kicker">Void Access</span>
+        <h2 class="section-title">Подписка</h2>
+      </div>
+
+      <div class="plans-table">
+        <div class="plans-row plans-row--head">
+          <div>Период</div>
+          <div>Цена</div>
+          <div>Скидка</div>
+        </div>
+
+        <div class="plans-row">
+          <div>1 месяц</div>
+          <div class="plan-price">
+            <span class="plan-price__current">200 ₽</span>
+          </div>
+          <div>—</div>
+        </div>
+
+        <div class="plans-row">
+          <div>3 месяца</div>
+          <div class="plan-price">
+            <span class="plan-price__old">600 ₽</span>
+            <span class="plan-price__current">510 ₽</span>
+          </div>
+          <div>15%</div>
+        </div>
+
+        <div class="plans-row">
+          <div>6 месяцев</div>
+          <div class="plan-price">
+            <span class="plan-price__old">1200 ₽</span>
+            <span class="plan-price__current">960 ₽</span>
+          </div>
+          <div>20%</div>
+        </div>
+
+        <div class="plans-row">
+          <div>12 месяцев</div>
+          <div class="plan-price">
+            <span class="plan-price__old">2400 ₽</span>
+            <span class="plan-price__current">1800 ₽</span>
+          </div>
+          <div>25%</div>
+        </div>
+      </div>
+
+      <button class="section-button" data-target="#entry" type="button">
+        <span>Выйти за пределы</span>
+        <span class="section-button__icon">↓</span>
+      </button>
+    </div>
+  </section>
+
+  <section class="screen entry-screen" id="entry">
+    <div class="entry-shell">
+      <span class="section-kicker section-kicker--center">Void Portal</span>
+      <h2 class="entry-title">Выбери точку входа</h2>
+
+      <div class="entry-actions">
+        <a href="{{ url_for('register') }}" class="entry-btn entry-btn--primary">
+          Зарегистрироваться
+        </a>
+
+        <a href="{{ url_for('login') }}" class="entry-btn entry-btn--ghost">
+          Войти
+        </a>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}
