@@ -19,6 +19,14 @@ from werkzeug.security import check_password_hash, generate_password_hash
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DATABASE = os.path.join(BASE_DIR, "users.db")
 SCHEMA_PATH = os.path.join(BASE_DIR, "schema.sql")
+TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
+
+INSTRUCTION_TEMPLATES = {
+    "ios": "inst-ios.html",
+    "android": "inst-android.html",
+    "windows": "inst-windows.html",
+    "macos": "inst-macos.html",
+}
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
@@ -92,6 +100,15 @@ def admin_required(view):
         return view(*args, **kwargs)
 
     return wrapped_view
+
+
+def render_instruction_page(template_name):
+    template_path = os.path.join(TEMPLATES_DIR, template_name)
+
+    if os.path.exists(template_path):
+        return render_template(template_name)
+
+    return render_template("inst-landing.html")
 
 
 @app.before_request
@@ -209,7 +226,27 @@ def dashboard():
 
 @app.route("/instructions")
 def instructions():
-    return render_template("instructions.html")
+    return render_template("inst-landing.html")
+
+
+@app.route("/instructions/ios")
+def instructions_ios():
+    return render_instruction_page(INSTRUCTION_TEMPLATES["ios"])
+
+
+@app.route("/instructions/android")
+def instructions_android():
+    return render_instruction_page(INSTRUCTION_TEMPLATES["android"])
+
+
+@app.route("/instructions/windows")
+def instructions_windows():
+    return render_instruction_page(INSTRUCTION_TEMPLATES["windows"])
+
+
+@app.route("/instructions/macos")
+def instructions_macos():
+    return render_instruction_page(INSTRUCTION_TEMPLATES["macos"])
 
 
 @app.route("/admin/login", methods=["GET", "POST"])
