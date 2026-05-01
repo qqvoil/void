@@ -1575,7 +1575,6 @@ textarea {
   }
 
   .dash-side-bottom {
-    min-height: unset;
     gap: 12px;
   }
 
