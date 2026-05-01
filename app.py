@@ -26,6 +26,7 @@ INSTRUCTION_TEMPLATES = {
     "android": "inst-android.html",
     "windows": "inst-windows.html",
     "macos": "inst-macos.html",
+    "dev": "inst-dev.html",
 }
 
 app = Flask(__name__)
@@ -231,22 +232,22 @@ def instructions():
 
 @app.route("/instructions/ios")
 def instructions_ios():
-    return render_instruction_page(INSTRUCTION_TEMPLATES["ios"])
+    return render_instruction_page(INSTRUCTION_TEMPLATES["dev"])
 
 
 @app.route("/instructions/android")
 def instructions_android():
-    return render_instruction_page(INSTRUCTION_TEMPLATES["android"])
+    return render_instruction_page(INSTRUCTION_TEMPLATES["dev"])
 
 
 @app.route("/instructions/windows")
 def instructions_windows():
-    return render_instruction_page(INSTRUCTION_TEMPLATES["windows"])
+    return render_instruction_page(INSTRUCTION_TEMPLATES["dev"])
 
 
 @app.route("/instructions/macos")
 def instructions_macos():
-    return render_instruction_page(INSTRUCTION_TEMPLATES["macos"])
+    return render_instruction_page(INSTRUCTION_TEMPLATES["dev"])
 
 
 @app.route("/admin/login", methods=["GET", "POST"])
