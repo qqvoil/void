@@ -140,10 +140,10 @@ def index():
     return render_template("index.html")
 
 
-@app.route("/init-db")
-def init_db_route():
-    init_db()
-    return "Database initialized."
+#@app.route("/init-db")
+#def init_db_route():
+#    init_db()
+#    return "Database initialized."
 
 
 @app.route("/register", methods=["GET", "POST"])
