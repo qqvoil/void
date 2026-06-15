@@ -1643,3 +1643,14 @@ button, input, select, textarea {
   .card { padding: 20px 16px; border-radius: 16px; }
   .card input, .card select, .card button { height: 48px; }
 }
+
+/* =========================================
+   ФИНАЛЬНЫЙ ФИКС ШИРИНЫ (УБИЙЦА ТИКЕРА)
+   ========================================= */
+.dash-grid,
+.dash-side-stack,
+.dash-side-bottom,
+.dash-side-ticker {
+    min-width: 0 !important;
+    max-width: 100% !important;
+}
