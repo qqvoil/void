@@ -195,9 +195,9 @@ def register():
             execute(
                 """
                 INSERT INTO users (full_name, password_hash, status, instructions_url)
-                VALUES (?, ?, 'new', ?)
-                """,
-                (full_name, password_hash, "/instructions"),
+                VALUES (?, ?, 'pending', ?)
+            """,
+                (full_name, password_hash, "/inst-landing"),
             )
             flash("Регистрация успешна. Теперь войдите в аккаунт.", "success")
             return redirect(url_for("login"))
@@ -243,29 +243,29 @@ def dashboard():
     return render_template("dashboard.html", user=g.user)
 
 
-@app.route("/instructions")
+@app.route("/inst-landing")
 def instructions():
     return render_template("inst-landing.html")
 
 
-@app.route("/instructions/ios")
+@app.route("/inst-landing/ios")
 def instructions_ios():
-    return render_instruction_page(INSTRUCTION_TEMPLATES["dev"])
+    return render_instruction_page(INSTRUCTION_TEMPLATES["ios"])
 
 
-@app.route("/instructions/android")
+@app.route("/inst-landing/android")
 def instructions_android():
-    return render_instruction_page(INSTRUCTION_TEMPLATES["dev"])
+    return render_instruction_page(INSTRUCTION_TEMPLATES["android"])
 
 
-@app.route("/instructions/windows")
+@app.route("/inst-landing/windows")
 def instructions_windows():
-    return render_instruction_page(INSTRUCTION_TEMPLATES["dev"])
+    return render_instruction_page(INSTRUCTION_TEMPLATES["windows"])
 
 
-@app.route("/instructions/macos")
+@app.route("/inst-landing/macos")
 def instructions_macos():
-    return render_instruction_page(INSTRUCTION_TEMPLATES["dev"])
+    return render_instruction_page(INSTRUCTION_TEMPLATES["macos"])
 
 
 @app.route("/admin/login", methods=["GET", "POST"])
@@ -322,7 +322,7 @@ def admin_update_user(user_id):
     full_name = request.form.get("full_name", "").strip()
     status = request.form.get("status", "").strip()
     subscription_url = request.form.get("subscription_url", "").strip() or None
-    instructions_url = request.form.get("instructions_url", "").strip() or "/instructions"
+    instructions_url = request.form.get("instructions_url", "").strip() or "/inst-landing"
     expires_at = request.form.get("expires_at", "").strip() or None
 
     allowed_statuses = {"new", "pending", "active", "expired"}
