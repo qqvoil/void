@@ -254,6 +254,7 @@
       </div>
 
       <form method="post" class="login-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <div class="login-field">
           <label class="login-label" for="full_name">ФИО</label>
           <input

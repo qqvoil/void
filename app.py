@@ -14,6 +14,9 @@ from flask import (
     url_for,
 )
 from werkzeug.security import check_password_hash, generate_password_hash
+from flask_wtf.csrf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -33,6 +36,14 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.config["DATABASE"] = DATABASE
 
+csrf = CSRFProtect(app)
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["1000 per day", "100 per hour"],
+    storage_uri="memory://"
+)
+
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
@@ -50,6 +61,7 @@ def get_db():
     if "db" not in g:
         g.db = sqlite3.connect(app.config["DATABASE"])
         g.db.row_factory = sqlite3.Row
+        g.db.execute("PRAGMA journal_mode=WAL;")
     return g.db
 
 
@@ -147,6 +159,7 @@ def index():
 
 
 @app.route("/register", methods=["GET", "POST"])
+@limiter.limit("10 per hour")
 def register():
     if request.method == "POST":
         full_name = request.form.get("full_name", "").strip()
@@ -191,6 +204,7 @@ def register():
 
 
 @app.route("/login", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
 def login():
     if request.method == "POST":
         full_name = request.form.get("full_name", "").strip()
@@ -251,6 +265,7 @@ def instructions_macos():
 
 
 @app.route("/admin/login", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
 def admin_login():
     if request.method == "POST":
         login_value = request.form.get("login", "").strip()
