@@ -142,6 +142,10 @@ def inject_globals():
         "contact_phone": CONTACT_PHONE,
     }
 
+@app.route("/terms")
+def terms():
+    return render_template("terms.html")
+
 
 @app.route("/")
 def index():
