@@ -1,0 +1,899 @@
+{% extends "base.html" %}
+{% block title %}iOS — Подключение{% endblock %}
+
+{% block content %}
+<style>
+  .inst-page {
+    position: relative;
+    min-height: 100vh;
+    padding: 118px 24px 28px;
+    overflow: hidden;
+  }
+
+  .inst-page::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 50% 14%, rgba(255, 255, 255, 0.03), transparent 24%),
+      radial-gradient(circle at 22% 76%, rgba(255, 255, 255, 0.014), transparent 24%),
+      radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.012), transparent 22%);
+    filter: blur(20px);
+    opacity: 0.9;
+  }
+
+  .inst-shell {
+    position: relative;
+    z-index: 2;
+    width: min(1120px, 100%);
+    margin: 0 auto;
+    min-height: calc(100vh - 146px);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .inst-main-wrap {
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  .inst-main {
+    width: min(900px, 100%);
+    margin: 0 auto;
+    display: grid;
+    gap: 24px;
+  }
+
+  .inst-topbar {
+    position: fixed;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 80;
+    width: min(1120px, calc(100% - 48px));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .inst-topbar__brand {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .inst-topbar__brand img {
+    width: 110px;
+    opacity: 0.94;
+    filter:
+      drop-shadow(0 0 12px rgba(255, 255, 255, 0.07))
+      drop-shadow(0 0 28px rgba(255, 255, 255, 0.04));
+  }
+
+  .inst-menu {
+    position: relative;
+    z-index: 90;
+  }
+
+  .inst-menu__trigger {
+    width: 34px;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.9);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition:
+      color 500ms cubic-bezier(0.22, 1, 0.36, 1),
+      filter 500ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .inst-menu__trigger:hover {
+    color: #ffffff;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.18));
+  }
+
+  .inst-menu__bars {
+    width: 22px;
+    height: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .inst-menu__bar {
+    width: 100%;
+    height: 2px;
+    border-radius: 999px;
+    background: currentColor;
+    transform-origin: center;
+    transition:
+      transform 700ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .inst-menu.is-open .inst-menu__bar:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+  }
+
+  .inst-menu.is-open .inst-menu__bar:nth-child(2) {
+    opacity: 0;
+  }
+
+  .inst-menu.is-open .inst-menu__bar:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
+  .inst-menu-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    background: rgba(0, 0, 0, 0.14);
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+    transition:
+      opacity 500ms cubic-bezier(0.22, 1, 0.36, 1),
+      visibility 500ms cubic-bezier(0.22, 1, 0.36, 1),
+      backdrop-filter 500ms cubic-bezier(0.22, 1, 0.36, 1),
+      -webkit-backdrop-filter 500ms cubic-bezier(0.22, 1, 0.36, 1),
+      background 500ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .inst-menu-overlay.is-open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    background: rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .inst-menu-panel {
+    position: fixed;
+    top: 68px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-8px);
+    width: min(1120px, calc(100% - 48px));
+    opacity: 0;
+    transition:
+      opacity 650ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 650ms cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: 85;
+  }
+
+  .inst-menu-overlay.is-open .inst-menu-panel {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .inst-menu-list {
+    margin-left: auto;
+    width: min(520px, 100%);
+    padding-top: 6px;
+  }
+
+  .inst-menu-list::before {
+    content: "";
+    display: block;
+    width: 100%;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .inst-menu-link {
+    position: relative;
+    min-height: 64px;
+    display: grid;
+    grid-template-columns: 1fr 24px;
+    align-items: center;
+    gap: 16px;
+    color: rgba(240, 234, 229, 0.82);
+    transition: color 400ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .inst-menu-link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .inst-menu-link:hover {
+    color: rgba(255, 255, 255, 0.96);
+  }
+
+  .inst-menu-link__text {
+    font-family: "Cormorant Garamond", serif;
+    font-size: clamp(1.7rem, 2vw, 2.05rem);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.003em;
+  }
+
+  .inst-menu-link__icon {
+    width: 24px;
+    height: 24px;
+    justify-self: end;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(240, 234, 229, 0.62);
+    transition:
+      color 400ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 400ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .inst-menu-link:hover .inst-menu-link__icon {
+    color: rgba(255, 255, 255, 0.9);
+    transform: translateX(1px);
+  }
+
+  .inst-menu-link__icon svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .inst-hero {
+    display: grid;
+    gap: 14px;
+    text-align: center;
+  }
+
+  .inst-kicker {
+    display: inline-block;
+    margin: 0 auto;
+    color: rgba(255, 255, 255, 0.38);
+    font-size: 0.72rem;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+  }
+
+  .inst-title {
+    margin: 0;
+    font-family: "Cormorant Garamond", serif;
+    font-size: clamp(3.1rem, 5.2vw, 4.8rem);
+    line-height: 0.91;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: rgba(245, 241, 238, 0.98);
+  }
+
+  .inst-subtitle {
+    margin: 0 auto;
+    max-width: 620px;
+    color: rgba(240, 234, 229, 0.56);
+    font-size: 0.98rem;
+    line-height: 1.5;
+  }
+
+  .inst-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .inst-action-btn {
+    min-height: 56px;
+    padding: 0 22px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(245, 241, 238, 0.96);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    transition:
+      background 700ms cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 700ms cubic-bezier(0.22, 1, 0.36, 1),
+      color 700ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .inst-action-btn:hover {
+    background: #f1f1f1;
+    color: #050505;
+    border-color: rgba(255, 255, 255, 0.9);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      inset 0 -18px 28px rgba(0, 0, 0, 0.1),
+      0 0 28px rgba(255, 255, 255, 0.08);
+  }
+
+  .inst-step {
+    position: relative;
+    padding: 24px 24px 22px;
+    border-radius: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.016), rgba(255, 255, 255, 0.008)),
+      rgba(8, 8, 8, 0.44);
+    box-shadow:
+      0 20px 46px rgba(0, 0, 0, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    display: grid;
+    gap: 16px;
+    overflow: hidden;
+  }
+
+  .inst-step::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.026), transparent 28%);
+    opacity: 0.36;
+  }
+
+  .inst-step > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .inst-step__top {
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    gap: 14px;
+    align-items: start;
+  }
+
+  .inst-step__num {
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.03);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(245, 241, 238, 0.92);
+    font-size: 0.92rem;
+    font-weight: 600;
+  }
+
+  .inst-step__head {
+    display: grid;
+    gap: 6px;
+    padding-top: 2px;
+  }
+
+  .inst-step__title {
+    margin: 0;
+    font-family: "Cormorant Garamond", serif;
+    font-size: clamp(2rem, 3vw, 2.5rem);
+    line-height: 0.96;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: rgba(245, 241, 238, 0.96);
+  }
+
+  .inst-step__text {
+    color: rgba(240, 234, 229, 0.58);
+    font-size: 0.98rem;
+    line-height: 1.58;
+  }
+
+  .inst-step__note {
+    color: rgba(240, 234, 229, 0.42);
+    font-size: 0.88rem;
+    line-height: 1.52;
+  }
+
+  .inst-shot-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .inst-shot-grid--single {
+    grid-template-columns: 1fr;
+  }
+
+  .inst-shot {
+    overflow: hidden;
+    border-radius: 22px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .inst-shot img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .inst-shot__caption {
+    padding: 10px 12px 12px;
+    color: rgba(240, 234, 229, 0.44);
+    font-size: 0.84rem;
+    line-height: 1.42;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .inst-final {
+    text-align: center;
+    padding: 18px 0 4px;
+    color: rgba(245, 241, 238, 0.86);
+    font-family: "Cormorant Garamond", serif;
+    font-size: clamp(1.7rem, 2.7vw, 2.3rem);
+    line-height: 1.08;
+  }
+
+  .inst-footer {
+    margin-top: auto;
+    display: grid;
+    gap: 14px;
+    padding-top: 24px;
+  }
+
+  .inst-footer__ticker {
+    overflow: hidden;
+    width: 100%;
+    mask-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(0, 0, 0, 1) 10%,
+      rgba(0, 0, 0, 1) 90%,
+      transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(0, 0, 0, 1) 10%,
+      rgba(0, 0, 0, 1) 90%,
+      transparent 100%
+    );
+  }
+
+  .inst-footer__ticker-track {
+    width: max-content;
+    display: flex;
+    align-items: center;
+    gap: 42px;
+    padding-left: 42px;
+    animation: instTicker 24s linear infinite;
+  }
+
+  .inst-footer__ticker-track span {
+    font-family: "Cormorant Garamond", serif;
+    font-size: clamp(1.65rem, 3.7vw, 3rem);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: lowercase;
+    color: rgba(240, 234, 229, 0.08);
+    white-space: nowrap;
+  }
+
+  .inst-footer__line {
+    width: 100%;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .inst-footer__meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px 22px;
+    color: rgba(240, 234, 229, 0.46);
+    font-size: 0.78rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  @keyframes instTicker {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  @media (max-width: 920px) {
+    .inst-page {
+      padding: 104px 16px 24px;
+    }
+
+    .inst-topbar {
+      width: calc(100% - 32px);
+      top: 14px;
+    }
+
+    .inst-topbar__brand img {
+      width: 96px;
+    }
+
+    .inst-menu-panel {
+      top: 60px;
+      width: calc(100% - 32px);
+    }
+
+    .inst-menu-list {
+      width: 100%;
+    }
+
+    .inst-menu-link {
+      min-height: 58px;
+      grid-template-columns: 1fr 22px;
+      gap: 12px;
+    }
+
+    .inst-menu-link__text {
+      font-size: clamp(1.45rem, 6vw, 1.85rem);
+    }
+
+    .inst-menu-link__icon,
+    .inst-menu-link__icon svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .inst-main {
+      gap: 20px;
+    }
+
+    .inst-title {
+      font-size: clamp(2.7rem, 9vw, 3.8rem);
+    }
+
+    .inst-subtitle {
+      font-size: 0.92rem;
+      max-width: 100%;
+    }
+
+    .inst-action-btn {
+      width: 100%;
+    }
+
+    .inst-step {
+      padding: 20px 16px 18px;
+      border-radius: 22px;
+      gap: 14px;
+    }
+
+    .inst-step__top {
+      grid-template-columns: 34px 1fr;
+      gap: 12px;
+    }
+
+    .inst-step__num {
+      width: 34px;
+      height: 34px;
+      font-size: 0.84rem;
+    }
+
+    .inst-step__title {
+      font-size: clamp(1.8rem, 6.8vw, 2.2rem);
+    }
+
+    .inst-step__text {
+      font-size: 0.93rem;
+    }
+
+    .inst-step__note {
+      font-size: 0.84rem;
+    }
+
+    .inst-shot-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .inst-final {
+      font-size: clamp(1.45rem, 6.4vw, 1.9rem);
+    }
+
+    .inst-footer__ticker-track {
+      gap: 28px;
+      padding-left: 28px;
+    }
+
+    .inst-footer__ticker-track span {
+      font-size: clamp(1.35rem, 6.6vw, 2.1rem);
+    }
+
+    .inst-footer__meta {
+      gap: 8px 16px;
+      font-size: 0.7rem;
+      letter-spacing: 0.14em;
+    }
+  }
+</style>
+
+<div class="inst-page">
+  <header class="inst-topbar">
+    <div class="inst-topbar__brand" aria-hidden="true">
+      <img src="{{ url_for('static', filename='img/minimal.png') }}" alt="Void">
+    </div>
+
+    <div class="inst-menu" id="instMenu">
+      <button
+        class="inst-menu__trigger"
+        id="instMenuTrigger"
+        type="button"
+        aria-expanded="false"
+        aria-controls="instMenuOverlay"
+        aria-label="Открыть меню"
+      >
+        <span class="inst-menu__bars" aria-hidden="true">
+          <span class="inst-menu__bar"></span>
+          <span class="inst-menu__bar"></span>
+          <span class="inst-menu__bar"></span>
+        </span>
+      </button>
+    </div>
+  </header>
+
+  <div class="inst-menu-overlay" id="instMenuOverlay" aria-hidden="true">
+    <div class="inst-menu-panel">
+      <nav class="inst-menu-list" aria-label="Навигация по инструкциям">
+        <a href="{{ url_for('index') }}" class="inst-menu-link">
+          <span class="inst-menu-link__text">Главная</span>
+          <span class="inst-menu-link__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1v-9.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </a>
+
+        <a href="{{ url_for('instructions') }}" class="inst-menu-link">
+          <span class="inst-menu-link__text">Все устройства</span>
+          <span class="inst-menu-link__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 7.5h16M4 12h16M4 16.5h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </span>
+        </a>
+
+        {% if current_user %}
+        <a href="{{ url_for('dashboard') }}" class="inst-menu-link">
+          <span class="inst-menu-link__text">Кабинет</span>
+          <span class="inst-menu-link__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M5 19c1.7-2.6 4.2-4 7-4s5.3 1.4 7 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </span>
+        </a>
+        {% else %}
+        <a href="{{ url_for('login') }}" class="inst-menu-link">
+          <span class="inst-menu-link__text">Войти</span>
+          <span class="inst-menu-link__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M5 19c1.7-2.6 4.2-4 7-4s5.3 1.4 7 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </span>
+        </a>
+        {% endif %}
+
+        <a
+          href="https://t.me/your_channel_here"
+          class="inst-menu-link"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span class="inst-menu-link__text">Telegram</span>
+          <span class="inst-menu-link__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M21 5 3.9 11.5c-1 .38-.97.98-.18 1.22l4.3 1.34 1.65 5c.2.6.1.84.73.84.48 0 .7-.22.95-.48l2.6-2.52 5.4 4c.93.5 1.58.24 1.82-.84L23.84 6.73C24.18 5.42 23.33 4.81 21 5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </a>
+
+        <a
+          href="https://github.com/qqvoil/void"
+          class="inst-menu-link"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span class="inst-menu-link__text">GitHub</span>
+          <span class="inst-menu-link__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M9 18c-4 1.2-4-2-5.7-2.4M14.7 20v-3.1c0-1 .1-1.4-.5-2 .2-.1 3.3-.4 3.3-4.3 0-1.1-.4-2-1-2.7.1-.2.5-1.3-.1-2.7 0 0-.8-.2-2.8 1a9.7 9.7 0 0 0-5.2 0c-2-1.2-2.8-1-2.8-1-.6 1.4-.2 2.5-.1 2.7-.6.7-1 1.6-1 2.7 0 3.9 3.1 4.2 3.3 4.3-.6.6-.6 1.2-.6 2V20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </a>
+      </nav>
+    </div>
+  </div>
+
+  <div class="inst-shell">
+    <div class="inst-main-wrap">
+      <div class="inst-main">
+        <section class="inst-hero">
+          <span class="inst-kicker">Void Setup · iOS</span>
+          <h1 class="inst-title">iPhone / iPad</h1>
+          <p class="inst-subtitle">
+            Быстрая настройка через Happ. Сначала установи приложение, затем импортируй ссылку подписки из буфера обмена.
+          </p>
+
+          <div class="inst-actions">
+            <a
+              href="https://apps.apple.com/ru/app/happ-proxy-utility-plus/id6746188973"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inst-action-btn"
+            >
+              Скачать Happ
+            </a>
+
+            <a href="{{ url_for('dashboard') }}" class="inst-action-btn">
+              Открыть кабинет
+            </a>
+          </div>
+        </section>
+
+        <section class="inst-step">
+          <div class="inst-step__top">
+            <div class="inst-step__num">1</div>
+            <div class="inst-step__head">
+              <h2 class="inst-step__title">Скачай Happ</h2>
+              <div class="inst-step__text">
+                Перейди по ссылке и установи приложение Happ на iPhone или iPad.
+              </div>
+            </div>
+          </div>
+
+
+        </section>
+
+        <section class="inst-step">
+          <div class="inst-step__top">
+            <div class="inst-step__num">2</div>
+            <div class="inst-step__head">
+              <h2 class="inst-step__title">Скопируй ссылку подписки</h2>
+              <div class="inst-step__text">
+                Открой личный кабинет и нажми кнопку копирования ссылки подписки.
+              </div>
+              <div class="inst-step__note">
+                В буфере обмена должна оказаться именно полная ссылка подписки.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="inst-step">
+          <div class="inst-step__top">
+            <div class="inst-step__num">3</div>
+            <div class="inst-step__head">
+              <h2 class="inst-step__title">Нажми на плюс и выбери вставку</h2>
+              <div class="inst-step__text">
+                Открой Happ, нажми на <strong>+</strong> в правом верхнем углу и выбери <strong>Import from clipboard</strong>.
+              </div>
+            </div>
+          </div>
+
+
+        </section>
+
+        <section class="inst-step">
+          <div class="inst-step__top">
+            <div class="inst-step__num">4</div>
+            <div class="inst-step__head">
+              <h2 class="inst-step__title">Разреши вставку</h2>
+              <div class="inst-step__text">
+                Когда iOS спросит доступ к буферу обмена, нажми <strong>Allow Paste</strong>.
+              </div>
+            </div>
+          </div>
+
+
+        </section>
+
+        <section class="inst-step">
+          <div class="inst-step__top">
+            <div class="inst-step__num">5</div>
+            <div class="inst-step__head">
+              <h2 class="inst-step__title">Подключись</h2>
+              <div class="inst-step__text">
+                После импорта в Happ появится список конфигураций. Выбери нужную и подключайся.
+              </div>
+            </div>
+          </div>
+
+
+        </section>
+
+        <div class="inst-final">
+          Наслаждайся расширенными горизонтами.
+        </div>
+      </div>
+    </div>
+
+    <footer class="inst-footer">
+      <div class="inst-footer__ticker" aria-hidden="true">
+        <div class="inst-footer__ticker-track">
+          <span>enterthevoid</span>
+          <span>enterthevoid</span>
+          <span>enterthevoid</span>
+          <span>enterthevoid</span>
+          <span>enterthevoid</span>
+          <span>enterthevoid</span>
+          <span>enterthevoid</span>
+          <span>enterthevoid</span>
+        </div>
+      </div>
+
+      <div class="inst-footer__line"></div>
+
+      <div class="inst-footer__meta">
+        <span>Void Team</span>
+        <span>Made by @qqvoil</span>
+        <span>2026</span>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<script>
+  (() => {
+    const menu = document.getElementById("instMenu");
+    const trigger = document.getElementById("instMenuTrigger");
+    const overlay = document.getElementById("instMenuOverlay");
+    const links = document.querySelectorAll(".inst-menu-link");
+
+    if (!menu || !trigger || !overlay) return;
+
+    const closeMenu = () => {
+      menu.classList.remove("is-open");
+      overlay.classList.remove("is-open");
+      trigger.setAttribute("aria-expanded", "false");
+      overlay.setAttribute("aria-hidden", "true");
+      document.body.classList.remove("menu-open");
+    };
+
+    const openMenu = () => {
+      menu.classList.add("is-open");
+      overlay.classList.add("is-open");
+      trigger.setAttribute("aria-expanded", "true");
+      overlay.setAttribute("aria-hidden", "false");
+      document.body.classList.add("menu-open");
+    };
+
+    trigger.addEventListener("click", (event) => {
+      event.stopPropagation();
+
+      if (menu.classList.contains("is-open")) {
+        closeMenu();
+      } else {
+        openMenu();
+      }
+    });
+
+    overlay.addEventListener("click", (event) => {
+      if (event.target === overlay) {
+        closeMenu();
+      }
+    });
+
+    links.forEach((link) => {
+      link.addEventListener("click", () => {
+        closeMenu();
+      });
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        closeMenu();
+      }
+    });
+  })();
+</script>
+{% endblock %}

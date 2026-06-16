@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+{% block title %}Личный кабинет{% endblock %}
+
+{% block content %}
+{% set raw_status = user.status|default('new') %}
+
+{% if raw_status == 'active' %}
+  {% set status_label = 'Подписка Активна' %}
+  {% set status_theme = 'active' %}
+{% elif raw_status == 'pending' %}
+  {% set status_label = 'На Рассмотрении' %}
+  {% set status_theme = 'pending' %}
+{% elif raw_status == 'expired' %}
+  {% set status_label = 'Подписка Просрочена' %}
+  {% set status_theme = 'expired' %}
+{% else %}
+  {% set status_label = 'Подписка Не Оформлена' %}
+  {% set status_theme = 'new' %}
+{% endif %}
+
+<div class="dash-page">
+  <header class="dash-topbar">
+    <div class="dash-topbar__brand" aria-hidden="true">
+      <img src="{{ url_for('static', filename='img/minimal.png') }}" alt="Void">
+    </div>
+
+    <div class="dash-menu" id="dashMenu">
+      <button
+        class="dash-menu__trigger"
+        id="dashMenuTrigger"
+        type="button"
+        aria-expanded="false"
+        aria-controls="dashMenuOverlay"
+        aria-label="Открыть меню"
+      >
+        <span class="dash-menu__bars" aria-hidden="true">
+          <span class="dash-menu__bar"></span>
+          <span class="dash-menu__bar"></span>
+          <span class="dash-menu__bar"></span>
+        </span>
+      </button>
+    </div>
+  </header>
+
+  <div class="dash-menu-overlay" id="dashMenuOverlay" aria-hidden="true">
+    <div class="dash-menu-panel">
+      <nav class="dash-menu-list" aria-label="Навигация кабинета">
+        <a href="{{ url_for('instructions') }}" class="dash-menu-link">
+          <span class="dash-menu-link__text">Инструкция</span>
+          <span class="dash-menu-link__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M8 3.5h6l4 4V20a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 7 20V5A1.5 1.5 0 0 1 8.5 3.5Z" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M14 3.5V8h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M10 12h4M10 15.5h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </span>
+        </a>
+
+        <a
+          href="https://t.me/+o_3QxohXlKhiMDky"
+          class="dash-menu-link"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span class="dash-menu-link__text">Telegram</span>
+          <span class="dash-menu-link__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M21 5 3.9 11.5c-1 .38-.97.98-.18 1.22l4.3 1.34 1.65 5c.2.6.1.84.73.84.48 0 .7-.22.95-.48l2.6-2.52 5.4 4c.93.5 1.58.24 1.82-.84L23.84 6.73C24.18 5.42 23.33 4.81 21 5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </a>
+
+        <a
+          href="https://github.com/qqvoil/void"
+          class="dash-menu-link"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span class="dash-menu-link__text">GitHub</span>
+          <span class="dash-menu-link__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M9 18c-4 1.2-4-2-5.7-2.4M14.7 20v-3.1c0-1 .1-1.4-.5-2 .2-.1 3.3-.4 3.3-4.3 0-1.1-.4-2-1-2.7.1-.2.5-1.3-.1-2.7 0 0-.8-.2-2.8 1a9.7 9.7 0 0 0-5.2 0c-2-1.2-2.8-1-2.8-1-.6 1.4-.2 2.5-.1 2.7-.6.7-1 1.6-1 2.7 0 3.9 3.1 4.2 3.3 4.3-.6.6-.6 1.2-.6 2V20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </a>
+
+        <a href="{{ url_for('logout') }}" class="dash-menu-link">
+          <span class="dash-menu-link__text">Выйти</span>
+          <span class="dash-menu-link__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M14 7l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M19 12H9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M10 4H6.5A1.5 1.5 0 0 0 5 5.5v13A1.5 1.5 0 0 0 6.5 20H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </span>
+        </a>
+      </nav>
+    </div>
+  </div>
+
+  <div class="dash-shell">
+    <section class="dash-hero">
+      <span class="dash-kicker">Void Cabinet</span>
+      <h1 class="dash-title">Личный кабинет</h1>
+
+      <div class="dash-status-row">
+        <div class="dash-status dash-status--{{ status_theme }}">
+          <span class="dash-status__dot"></span>
+          <span>{{ status_label }}</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="dash-grid">
+      <div class="dash-card">
+        {% if raw_status == 'active' %}
+          <span class="dash-card__kicker">Main Access</span>
+          <h2 class="dash-card__title">Доступ готов</h2>
+          <p class="dash-card__text">
+            Ниже находится твоя ссылка на подписку. Скопируй её и импортируй в VPN-клиент.
+          </p>
+
+          <div class="dash-subscription-box">
+            <span class="dash-subscription-label">Ссылка на подписку</span>
+
+            {% if user.subscription_url %}
+              <p class="dash-subscription-url" id="subscriptionText">{{ user.subscription_url }}</p>
+            {% else %}
+              <p class="dash-subscription-empty">Ссылка пока не добавлена.</p>
+            {% endif %}
+          </div>
+
+          <div class="dash-actions">
+            {% if user.subscription_url %}
+              <button type="button" class="dash-btn" id="copySubscriptionBtn">
+                Скопировать ссылку
+              </button>
+            {% endif %}
+
+            <a href="{{ url_for('instructions') }}" class="dash-btn dash-btn--ghost">
+              Инструкция по установке
+            </a>
+          </div>
+        {% else %}
+          <span class="dash-card__kicker">Subscription</span>
+          <h2 class="dash-card__title">{{ status_label }}</h2>
+
+          {% if raw_status == 'pending' %}
+            <p class="dash-card__text">
+              Твоя заявка сейчас на рассмотрении. Как только доступ будет подготовлен, в кабинете появится ссылка на подписку.
+            </p>
+          {% elif raw_status == 'expired' %}
+            <p class="dash-card__text">
+              Срок действия подписки закончился. Оплати продление, чтобы восстановить доступ к VPN.
+            </p>
+          {% else %}
+            <p class="dash-card__text">
+              Подписка ещё не оформлена. Оплати подписку, чтобы получить безопасный и быстрый доступ к интернету.
+            </p>
+            
+            {% if user.has_trial_used == 0 %}
+            <div style="margin-top: 1.5rem; padding: 1.5rem; background: rgba(76, 175, 80, 0.1); border: 1px solid rgba(76, 175, 80, 0.3); border-radius: 12px; text-align: center;">
+              <h3 style="color: #4CAF50; margin-bottom: 0.5rem; font-size: 1.2rem;">Попробуйте бесплатно!</h3>
+              <p style="color: rgba(255,255,255,0.8); margin-bottom: 1rem; font-size: 0.95rem;">
+                Активируйте пробный период на 5 дней, чтобы протестировать скорость и стабильность.
+              </p>
+              <form action="{{ url_for('activate_trial') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <button type="submit" class="dash-btn" style="width: 100%; justify-content: center; background: #4CAF50; color: white; border: none;">
+                  Активировать бесплатный пробный период
+                </button>
+              </form>
+            </div>
+            {% endif %}
+          {% endif %}
+
+          {% if raw_status != 'active' and raw_status != 'pending' %}
+          <div style="margin-top: 2rem;">
+            <form action="{{ url_for('payment_pay') }}" method="POST">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+              <p style="font-size: 0.9rem; color: rgba(240, 234, 229, 0.48); margin-bottom: 0.5rem;">Выберите тариф:</p>
+              
+              <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; cursor: pointer;">
+                  <input type="radio" name="months" value="1" checked>
+                  <span>1 месяц — 200 ₽</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; cursor: pointer;">
+                  <input type="radio" name="months" value="3">
+                  <span>3 месяца — 510 ₽ (скидка 15%)</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; cursor: pointer;">
+                  <input type="radio" name="months" value="6">
+                  <span>6 месяцев — 960 ₽ (скидка 20%)</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; cursor: pointer;">
+                  <input type="radio" name="months" value="12">
+                  <span>12 месяцев — 1800 ₽ (скидка 25%)</span>
+                </label>
+              </div>
+
+              <button type="submit" class="dash-btn" style="width: 100%; justify-content: center;">
+                Перейти к оплате
+              </button>
+            </form>
+          </div>
+          {% endif %}
+
+          <div class="dash-contact-list" style="margin-top: 2rem;">
+            <div class="dash-contact-item">
+              <span class="dash-contact-item__label">Поддержка (Telegram)</span>
+              <a href="https://t.me/jointhevoid_bot" target="_blank" class="dash-contact-item__value" style="color: inherit; text-decoration: none;">@jointhevoid_bot</a>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="dash-side-stack">
+        <aside class="dash-card dash-side-card">
+          <span class="dash-card__kicker">Profile</span>
+          <h2 class="dash-card__title">Сведения</h2>
+
+          <div class="dash-meta">
+            <div class="dash-meta__row">
+              <span class="dash-meta__label">Пользователь</span>
+              <div class="dash-meta__value">{{ user.full_name }}</div>
+            </div>
+
+            <div class="dash-meta__row">
+              <span class="dash-meta__label">Действует до</span>
+              <div class="dash-meta__value">{{ user.expires_at or '—' }}</div>
+            </div>
+          </div>
+        </aside>
+
+        {% if not user.telegram_id %}
+        <aside class="dash-card dash-side-card" style="margin-top: 1rem; border-color: rgba(42, 171, 238, 0.15); box-shadow: 0 8px 32px rgba(26, 136, 199, 0.05);">
+          <span class="dash-card__kicker" style="color: #2AABEE;">Telegram</span>
+          <h2 class="dash-card__title">Привяжи аккаунт</h2>
+          <div class="dash-meta">
+            <p style="font-size: 0.85rem; line-height: 1.4; color: var(--color-text-dim); margin-bottom: 1rem;">
+              Получай мгновенные уведомления о подписке и свежие новости о Void VPN прямо в нашем боте!
+            </p>
+            <a href="https://t.me/jointhevoid_bot?start={{ user.tg_link_token }}" target="_blank" class="dash-btn" style="background: linear-gradient(135deg, #1a88c7 0%, #0e6495 100%); box-shadow: 0 4px 15px rgba(42, 171, 238, 0.2); color: #fff; width: 100%; justify-content: center; border: 1px solid rgba(42, 171, 238, 0.3);">
+              Привязать Telegram
+            </a>
+          </div>
+        </aside>
+        {% endif %}
+
+        <div class="dash-side-bottom">
+          <div class="dash-side-ticker" aria-hidden="true">
+            <div class="dash-side-ticker__track">
+              <span>enterthevoid</span>
+              <span>enterthevoid</span>
+              <span>enterthevoid</span>
+              <span>enterthevoid</span>
+              <span>enterthevoid</span>
+              <span>enterthevoid</span>
+            </div>
+          </div>
+          <script>
+            document.addEventListener("DOMContentLoaded", function() {
+              const dashCardText = document.querySelectorAll('.dash-card__text');
+              dashCardText.forEach((el, index) => {
+                setTimeout(() => {
+                  el.style.opacity = '1';
+                  el.style.transform = 'translateY(0)';
+                }, 300 + (index * 100));
+              });
+              
+              // Автоматическая привязка Telegram-аккаунта в Mini App
+              {% if not user.telegram_id %}
+              if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
+                  fetch('/auth/webapp', {
+                      method: 'POST',
+                      headers: {
+                          'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({ initData: window.Telegram.WebApp.initData })
+                  })
+                  .then(res => res.json())
+                  .then(data => {
+                      if (data.success && data.linked) {
+                          // Reload to hide the 'Link Telegram' button since it's now linked
+                          window.location.reload();
+                      }
+                  })
+                  .catch(console.error);
+              }
+              {% endif %}
+            });
+          </script>
+
+          <div class="dash-side-line" aria-hidden="true"></div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="dash-footer">
+      <div class="dash-footer__meta">
+        <span>Void Team</span>
+        <span><a href="{{ url_for('terms') }}" style="color: inherit; text-decoration: underline;">Оферта и Правила</a></span>
+        <span>Made by @qqvoil</span>
+        <span>2026</span>
+      </div>
+    </footer>
+    
+    {% if not has_password %}
+    <div class="dash-card" style="margin-top: 1.5rem; border-color: rgba(235, 87, 87, 0.3);">
+      <div class="dash-card__header">
+        <h2 class="dash-card__title" style="color: #eb5757;">⚠️ Установите пароль</h2>
+      </div>
+      <div class="dash-card__body">
+        <p style="font-size: 0.9rem; color: rgba(255,255,255,0.7); margin-bottom: 1rem;">
+          Вы зарегистрировались через Telegram. Если Telegram будет заблокирован, вы не сможете войти в личный кабинет. 
+          Пожалуйста, задайте уникальный логин и пароль, чтобы всегда иметь доступ на сайт:
+        </p>
+        <form action="{{ url_for('set_password') }}" method="POST" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <input type="text" name="login" value="{{ user.full_name }}" placeholder="Придумайте логин" required style="flex: 1; min-width: 200px; padding: 0.8rem 1.2rem; border-radius: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); color: #fff; font-size: 1rem;">
+          <input type="password" name="password" placeholder="Придумайте пароль" required style="flex: 1; min-width: 200px; padding: 0.8rem 1.2rem; border-radius: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); color: #fff; font-size: 1rem;">
+          <button type="submit" class="dash-btn" style="background: rgba(255, 255, 255, 0.05); color: #fff; flex: 1; min-width: 150px;">Сохранить</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </main>
+</div>
+{% endblock %}
