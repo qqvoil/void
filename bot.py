@@ -3,7 +3,7 @@ import logging
 import os
 import sqlite3
 
-from aiogram import Bot, Dispatcher, types
+from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart
 
 # Configure logging
