@@ -321,7 +321,7 @@ def auth_telegram():
 
 def check_webapp_authorization(init_data: str) -> bool:
     import urllib.parse
-    bot_token = os.environ.get("BOT_TOKEN")
+    bot_token = os.environ.get("BOT_TOKEN") or os.environ.get("TG_BOT_TOKEN")
     if not bot_token:
         return False
         
