@@ -435,7 +435,7 @@ def payment_pay():
     pay_id = str(invoice["id"])
     
     currency = "RUB"
-    desc = f"Оплата подписки Void VPN на {months} мес."
+    desc = f"Void VPN Subscription ({months} months)"
     
     success_url = "https://jointhevoid.ru/dashboard"
     fail_url = "https://jointhevoid.ru/dashboard"
@@ -455,7 +455,8 @@ def payment_pay():
         "sign": sign
     }
     
-    url = "https://anypay.io/merchant?" + urllib.parse.urlencode(query_params)
+    query_string = urllib.parse.urlencode(query_params, quote_via=urllib.parse.quote)
+    url = "https://anypay.io/merchant?" + query_string
     
     return redirect(url)
 
