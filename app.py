@@ -437,13 +437,25 @@ def payment_pay():
     currency = "RUB"
     desc = f"Оплата подписки Void VPN на {months} мес."
     
-    success_url = url_for('dashboard', _external=True)
-    fail_url = url_for('dashboard', _external=True)
+    success_url = "https://jointhevoid.ru/dashboard"
+    fail_url = "https://jointhevoid.ru/dashboard"
     
     sign_string = f"{project_id}:{pay_id}:{amount}:{currency}:{desc}:{success_url}:{fail_url}:{secret_key}"
     sign = hashlib.sha256(sign_string.encode('utf-8')).hexdigest()
     
-    url = f"https://anypay.io/merchant?merchant_id={project_id}&pay_id={pay_id}&amount={amount}&currency={currency}&desc={desc}&success_url={success_url}&fail_url={fail_url}&sign={sign}"
+    import urllib.parse
+    query_params = {
+        "merchant_id": project_id,
+        "pay_id": pay_id,
+        "amount": amount,
+        "currency": currency,
+        "desc": desc,
+        "success_url": success_url,
+        "fail_url": fail_url,
+        "sign": sign
+    }
+    
+    url = "https://anypay.io/merchant?" + urllib.parse.urlencode(query_params)
     
     return redirect(url)
 
