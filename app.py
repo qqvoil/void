@@ -172,7 +172,11 @@ def webapp():
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Loading...</title>
+        <script src="https://telegram.org/js/telegram-web-app.js"></script>
         <script>
+            if (window.Telegram && window.Telegram.WebApp) {
+                window.Telegram.WebApp.ready();
+            }
             window.location.replace("{target_url}");
         </script>
     </head>
