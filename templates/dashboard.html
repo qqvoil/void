@@ -157,6 +157,21 @@
             <p class="dash-card__text">
               Подписка ещё не оформлена. Оплати подписку, чтобы получить безопасный и быстрый доступ к интернету.
             </p>
+            
+            {% if user.has_trial_used == 0 %}
+            <div style="margin-top: 1.5rem; padding: 1.5rem; background: rgba(76, 175, 80, 0.1); border: 1px solid rgba(76, 175, 80, 0.3); border-radius: 12px; text-align: center;">
+              <h3 style="color: #4CAF50; margin-bottom: 0.5rem; font-size: 1.2rem;">Попробуйте бесплатно!</h3>
+              <p style="color: rgba(255,255,255,0.8); margin-bottom: 1rem; font-size: 0.95rem;">
+                Активируйте пробный период на 5 дней, чтобы протестировать скорость и стабильность.
+              </p>
+              <form action="{{ url_for('activate_trial') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <button type="submit" class="dash-btn" style="width: 100%; justify-content: center; background: #4CAF50; color: white; border: none;">
+                  Активировать бесплатный пробный период
+                </button>
+              </form>
+            </div>
+            {% endif %}
           {% endif %}
 
           {% if raw_status != 'active' and raw_status != 'pending' %}

@@ -1,7 +1,10 @@
 import os
 import sqlite3
-from datetime import timedelta
+from datetime import datetime, timedelta
 from functools import wraps
+import requests
+import json
+import logging
 
 from flask import (
     Flask,
@@ -17,7 +20,6 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DATABASE = os.path.join(BASE_DIR, "users.db")
@@ -377,9 +379,6 @@ def auth_webapp():
     return {"success": False, "error": "Invalid hash"}
 
 
-import requests
-from datetime import datetime, timedelta
-
 @app.route("/payment/pay", methods=["POST"])
 @login_required
 def payment_pay():
@@ -423,6 +422,75 @@ def payment_pay():
     
     return redirect(url)
 
+# --- Remnawave API Client ---
+
+def get_remnawave_squad_uuid(api_key):
+    try:
+        resp = requests.get(
+            "https://panel.jointhevoid.ru/api/users",
+            headers={"Authorization": f"Bearer {api_key}"},
+            timeout=5
+        )
+        if resp.status_code == 200:
+            users = resp.json()
+            for u in users:
+                if u.get("activeInternalSquads"):
+                    return u["activeInternalSquads"][0]["uuid"]
+    except Exception as e:
+        logging.error(f"Error fetching squad: {e}")
+    return "82e7d898-a7ee-4826-9f9d-ae9eb0933ed9"  # Fallback to known Default-Squad
+
+def remnawave_create_or_extend_user(username, expire_date_str):
+    api_key = os.environ.get("RW_API_KEY")
+    if not api_key:
+        return None
+        
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    
+    # expire_date_str is YYYY-MM-DD
+    expire_dt = datetime.strptime(expire_date_str, "%Y-%m-%d")
+    # Remnawave expects ISO 8601 with Z
+    expire_iso = expire_dt.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    
+    # Check if user already exists
+    users_resp = requests.get("https://panel.jointhevoid.ru/api/users", headers=headers, timeout=5)
+    existing_user = None
+    if users_resp.status_code == 200:
+        for u in users_resp.json():
+            if u.get("username") == username:
+                existing_user = u
+                break
+                
+    if existing_user:
+        # Extend user
+        update_payload = {
+            "status": "ACTIVE",
+            "expireAt": expire_iso
+        }
+        user_uuid = existing_user["uuid"]
+        resp = requests.put(f"https://panel.jointhevoid.ru/api/users/{user_uuid}", headers=headers, json=update_payload, timeout=5)
+        if resp.status_code == 200:
+            return existing_user.get("subscriptionUrl")
+    else:
+        # Create user
+        squad_uuid = get_remnawave_squad_uuid(api_key)
+        create_payload = {
+            "username": username,
+            "status": "ACTIVE",
+            "trafficLimitBytes": 0,
+            "trafficLimitStrategy": "NO_RESET",
+            "expireAt": expire_iso,
+            "activeInternalSquads": [squad_uuid]
+        }
+        resp = requests.post("https://panel.jointhevoid.ru/api/users", headers=headers, json=create_payload, timeout=5)
+        if resp.status_code == 201:
+            data = resp.json().get("response", {})
+            return data.get("subscriptionUrl")
+            
+    return None
 
 @app.route("/payment/anypay/webhook", methods=["POST", "GET"])
 @limiter.exempt
@@ -480,13 +548,29 @@ def anypay_webhook():
             new_expires = now + timedelta(days=days_to_add)
             
         expires_str = new_expires.strftime("%Y-%m-%d")
-        execute("UPDATE users SET status = 'active', expires_at = ? WHERE id = ?", (expires_str, user_id))
+        
+        # Integrate with Remnawave
+        rw_username = f"User-{user_id}-{user['full_name']}"
+        # Sanitize username (Remnawave requires alphanumeric and hyphens mostly)
+        import re
+        rw_username = re.sub(r'[^a-zA-Z0-9-]', '-', rw_username)
+        
+        sub_url = remnawave_create_or_extend_user(rw_username, expires_str)
+        
+        if sub_url:
+            execute("UPDATE users SET status = 'active', expires_at = ?, subscription_url = ? WHERE id = ?", (expires_str, sub_url, user_id))
+        else:
+            execute("UPDATE users SET status = 'active', expires_at = ? WHERE id = ?", (expires_str, user_id))
         
         telegram_id = user["telegram_id"]
         if telegram_id:
             bot_token = os.environ.get("BOT_TOKEN")
             if bot_token:
-                msg = "✅ Подписка успешно оплачена! Доступ к VPN активен.\nСсылка на конфигурацию доступна в личном кабинете на сайте."
+                msg = "✅ Подписка успешно оплачена! Доступ к VPN активен.\n"
+                if sub_url:
+                    msg += f"\nВот ваша ссылка на подключение:\n`{sub_url}`\n"
+                msg += "\nСсылка на конфигурацию также доступна в личном кабинете на сайте."
+                
                 try:
                     requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", data={
                         "chat_id": telegram_id,
@@ -497,7 +581,50 @@ def anypay_webhook():
                 
     return "OK", 200
 
-
+@app.route("/activate-trial", methods=["POST"])
+@login_required
+def activate_trial():
+    user = g.user
+    if user["has_trial_used"]:
+        flash("Вы уже использовали пробный период.", "error")
+        return redirect(url_for("dashboard"))
+        
+    if user["status"] == "active" or user["expires_at"]:
+        flash("У вас уже есть подписка.", "error")
+        return redirect(url_for("dashboard"))
+        
+    now = datetime.now()
+    new_expires = now + timedelta(days=5)
+    expires_str = new_expires.strftime("%Y-%m-%d")
+    
+    rw_username = f"Trial-{user['id']}-{user['full_name']}"
+    import re
+    rw_username = re.sub(r'[^a-zA-Z0-9-]', '-', rw_username)
+    
+    sub_url = remnawave_create_or_extend_user(rw_username, expires_str)
+    
+    if sub_url:
+        execute("UPDATE users SET status = 'active', expires_at = ?, subscription_url = ?, has_trial_used = 1 WHERE id = ?", 
+               (expires_str, sub_url, user["id"]))
+               
+        telegram_id = user["telegram_id"]
+        if telegram_id:
+            bot_token = os.environ.get("BOT_TOKEN")
+            if bot_token:
+                msg = f"🎁 Пробный период на 5 дней активирован!\n\nВот ваша ссылка на подключение:\n`{sub_url}`\n\nПриятного пользования!"
+                try:
+                    requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", data={
+                        "chat_id": telegram_id,
+                        "text": msg,
+                        "parse_mode": "Markdown"
+                    }, timeout=5)
+                except Exception:
+                    pass
+        flash("Бесплатный пробный период успешно активирован!", "success")
+    else:
+        flash("Произошла ошибка при генерации ключа. Пожалуйста, обратитесь в поддержку.", "error")
+        
+    return redirect(url_for("dashboard"))
 
 @app.route("/logout")
 def logout():
