@@ -516,7 +516,22 @@ def dashboard():
         token = secrets.token_urlsafe(16)
         execute("UPDATE users SET tg_link_token = ? WHERE id = ?", (token, user["id"]))
         user["tg_link_token"] = token
-    return render_template("dashboard.html", user=user)
+        
+    has_password = bool(user.get("password_hash"))
+    return render_template("dashboard.html", user=user, has_password=has_password)
+
+
+@app.route("/set-password", methods=["POST"])
+@login_required
+def set_password():
+    password = request.form.get("password", "")
+    if len(password) < 6:
+        flash("Пароль должен быть не короче 6 символов.", "error")
+    else:
+        password_hash = generate_password_hash(password)
+        execute("UPDATE users SET password_hash = ? WHERE id = ?", (password_hash, g.user["id"]))
+        flash("Пароль успешно установлен! Теперь вы можете входить по ФИО и паролю.", "success")
+    return redirect(url_for("dashboard"))
 
 
 @app.route("/inst-landing")

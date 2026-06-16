@@ -258,6 +258,24 @@
         <span>2026</span>
       </div>
     </footer>
-  </div>
+    
+    {% if not has_password %}
+    <div class="dash-card" style="margin-top: 1.5rem; border-color: rgba(235, 87, 87, 0.3);">
+      <div class="dash-card__header">
+        <h2 class="dash-card__title" style="color: #eb5757;">⚠️ Установите пароль</h2>
+      </div>
+      <div class="dash-card__body">
+        <p style="font-size: 0.9rem; color: rgba(255,255,255,0.7); margin-bottom: 1rem;">
+          Вы зарегистрировались через Telegram. Если Telegram будет заблокирован, вы не сможете войти в личный кабинет. 
+          Пожалуйста, установите пароль, чтобы всегда иметь доступ по ФИО (<strong>{{ user.full_name }}</strong>) и паролю:
+        </p>
+        <form action="{{ url_for('set_password') }}" method="POST" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <input type="password" name="password" placeholder="Придумайте пароль" required style="flex: 1; min-width: 200px; padding: 0.8rem 1.2rem; border-radius: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); color: #fff; font-size: 1rem;">
+          <button type="submit" class="dash-btn" style="background: rgba(255, 255, 255, 0.05); color: #fff;">Сохранить</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </main>
 </div>
 {% endblock %}
