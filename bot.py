@@ -9,12 +9,18 @@ from aiogram.filters import CommandStart
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
+from aiogram.client.session.aiohttp import AiohttpSession
+from aiogram.client.telegram import TelegramAPIServer
+
 # Initialize bot and dispatcher
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 if not BOT_TOKEN:
     raise ValueError("No BOT_TOKEN provided in environment variables")
 
-bot = Bot(token=BOT_TOKEN)
+session = AiohttpSession(
+    api=TelegramAPIServer.from_base("http://91.238.123.4:10080")
+)
+bot = Bot(token=BOT_TOKEN, session=session)
 dp = Dispatcher()
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "users.db")
