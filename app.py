@@ -229,7 +229,7 @@ def register():
             execute(
                 """
                 INSERT INTO users (full_name, password_hash, status, instructions_url)
-                VALUES (?, ?, 'pending', ?)
+                VALUES (?, ?, 'new', ?)
             """,
                 (full_name, password_hash, "/inst-landing"),
             )
@@ -342,6 +342,7 @@ def check_webapp_authorization(init_data: str) -> bool:
 
 
 @app.route("/auth/webapp", methods=["POST"])
+@csrf.exempt
 def auth_webapp():
     init_data = request.json.get('initData')
     if not init_data:
