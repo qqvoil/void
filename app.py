@@ -575,10 +575,22 @@ def anypay_webhook():
         expires_str = new_expires.strftime("%Y-%m-%d")
         
         # Integrate with Remnawave
-        rw_username = f"User-{user_id}-{user['full_name']}"
-        # Sanitize username (Remnawave requires alphanumeric and hyphens mostly)
+        # Transliterate cyrillic to latin and sanitize
+        cyrillic_translit = {
+            'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'zh',
+            'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
+            'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'h', 'ц': 'ts',
+            'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+        }
+        
+        safe_name = user['full_name'].lower()
+        for cyr, lat in cyrillic_translit.items():
+            safe_name = safe_name.replace(cyr, lat)
+            
         import re
-        rw_username = re.sub(r'[^a-zA-Z0-9-]', '-', rw_username)
+        safe_name = re.sub(r'[^a-zA-Z0-9-]', '-', safe_name)
+        rw_username = f"User-{user_id}-{safe_name}"
+        rw_username = re.sub(r'-+', '-', rw_username).strip('-')
         
         sub_url = remnawave_create_or_extend_user(rw_username, expires_str)
         
@@ -622,9 +634,22 @@ def activate_trial():
     new_expires = now + timedelta(days=5)
     expires_str = new_expires.strftime("%Y-%m-%d")
     
-    rw_username = f"Trial-{user['id']}-{user['full_name']}"
+    # Transliterate cyrillic to latin and sanitize
+    cyrillic_translit = {
+        'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'zh',
+        'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
+        'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'h', 'ц': 'ts',
+        'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+    }
+    
+    safe_name = user['full_name'].lower()
+    for cyr, lat in cyrillic_translit.items():
+        safe_name = safe_name.replace(cyr, lat)
+        
     import re
-    rw_username = re.sub(r'[^a-zA-Z0-9-]', '-', rw_username)
+    safe_name = re.sub(r'[^a-zA-Z0-9-]', '-', safe_name)
+    rw_username = f"Trial-{user['id']}-{safe_name}"
+    rw_username = re.sub(r'-+', '-', rw_username).strip('-')
     
     sub_url = remnawave_create_or_extend_user(rw_username, expires_str)
     
