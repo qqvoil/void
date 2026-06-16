@@ -347,9 +347,12 @@ def check_webapp_authorization(init_data: str) -> bool:
 def auth_webapp():
     init_data = request.json.get('initData')
     if not init_data:
+        logging.error("No initData provided")
         return {"success": False, "error": "No initData"}
         
-    if check_webapp_authorization(init_data):
+    is_valid = check_webapp_authorization(init_data)
+    logging.info(f"WebApp Auth check: {is_valid}")
+    if is_valid:
         import urllib.parse
         import json
         parsed = dict(urllib.parse.parse_qsl(init_data))
@@ -359,13 +362,29 @@ def auth_webapp():
         first_name = user_data.get('first_name', 'Telegram User')
         
         if not telegram_id:
+            logging.error("No telegram_id in user_data")
             return {"success": False, "error": "No telegram_id"}
             
-        user = query_one("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,))
-        if user:
+        existing_tg_user = query_one("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,))
+        
+        if getattr(g, 'user', None):
+            # User is already logged in, let's link the TG account if possible
+            current_user_id = g.user["id"]
+            if not existing_tg_user or existing_tg_user["id"] == current_user_id:
+                execute("UPDATE users SET telegram_id = ? WHERE id = ?", (telegram_id, current_user_id))
+                return {"success": True, "linked": True}
+            else:
+                # Switch to existing TG user to avoid conflicts
+                session.clear()
+                session.permanent = True
+                session["user_id"] = existing_tg_user["id"]
+                return {"success": True}
+                
+        # User not logged in
+        if existing_tg_user:
             session.clear()
             session.permanent = True
-            session["user_id"] = user["id"]
+            session["user_id"] = existing_tg_user["id"]
             return {"success": True}
         else:
             execute(
@@ -378,7 +397,8 @@ def auth_webapp():
             session["user_id"] = new_user["id"]
             return {"success": True}
             
-    return {"success": False, "error": "Invalid hash"}
+    logging.error("WebApp Auth validation failed")
+    return {"success": False, "error": "Invalid auth"}
 
 
 @app.route("/payment/pay", methods=["POST"])
