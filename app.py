@@ -568,7 +568,7 @@ def anypay_webhook():
     
     if user:
         now = datetime.now()
-        months_paid = invoice.get("months", 1)
+        months_paid = invoice["months"] if invoice["months"] else 1
         days_to_add = months_paid * 30
         
         if user["expires_at"]:
@@ -699,13 +699,12 @@ import secrets
 @login_required
 def dashboard():
     user = dict(g.user) if g.user else {}
-    if not user.get("telegram_id") and not user.get("tg_link_token"):
-        # Generate a new token
+    if not user["telegram_id"] and not user["tg_link_token"]:
         token = secrets.token_urlsafe(16)
         execute("UPDATE users SET tg_link_token = ? WHERE id = ?", (token, user["id"]))
-        user["tg_link_token"] = token
+        user = query_one("SELECT * FROM users WHERE id = ?", (user["id"],))
         
-    has_password = bool(user.get("password_hash"))
+    has_password = bool(user["password_hash"])
     return render_template("dashboard.html", user=user, has_password=has_password)
 
 
