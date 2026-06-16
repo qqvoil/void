@@ -288,6 +288,112 @@ def auth_telegram():
     return redirect(url_for("login"))
 
 
+import requests
+from datetime import datetime, timedelta
+
+@app.route("/payment/pay", methods=["POST"])
+@login_required
+def payment_pay():
+    project_id = os.environ.get("ANYPAY_PROJECT_ID")
+    secret_key = os.environ.get("ANYPAY_SECRET_KEY")
+    amount = os.environ.get("SUBSCRIPTION_PRICE", "150.00")
+    
+    if not project_id or not secret_key:
+        flash("Оплата временно недоступна (касса не настроена).", "error")
+        return redirect(url_for("dashboard"))
+        
+    user_id = g.user["id"]
+    
+    execute_db("INSERT INTO invoices (user_id, amount) VALUES (?, ?)", (user_id, int(float(amount))))
+    invoice = query_one("SELECT * FROM invoices WHERE user_id = ? ORDER BY id DESC LIMIT 1", (user_id,))
+    pay_id = str(invoice["id"])
+    
+    currency = "RUB"
+    desc = "Оплата подписки Void VPN"
+    
+    success_url = url_for('dashboard', _external=True)
+    fail_url = url_for('dashboard', _external=True)
+    
+    sign_string = f"{project_id}:{pay_id}:{amount}:{currency}:{desc}:{success_url}:{fail_url}:{secret_key}"
+    sign = hashlib.sha256(sign_string.encode('utf-8')).hexdigest()
+    
+    url = f"https://anypay.io/merchant?merchant_id={project_id}&pay_id={pay_id}&amount={amount}&currency={currency}&desc={desc}&success_url={success_url}&fail_url={fail_url}&sign={sign}"
+    
+    return redirect(url)
+
+
+@app.route("/payment/anypay/webhook", methods=["POST", "GET"])
+@limiter.exempt
+def anypay_webhook():
+    project_id = os.environ.get("ANYPAY_PROJECT_ID")
+    secret_key = os.environ.get("ANYPAY_SECRET_KEY")
+    
+    if not project_id or not secret_key:
+        return "Not configured", 500
+        
+    req_data = request.form if request.method == "POST" else request.args
+    
+    currency = req_data.get('currency', '')
+    amount = req_data.get('amount', '')
+    pay_id = req_data.get('pay_id', '')
+    status = req_data.get('status', '')
+    sign_received = req_data.get('sign', '')
+    
+    sign_string = f"{currency}:{amount}:{pay_id}:{project_id}:{status}:{secret_key}"
+    sign_computed = hashlib.sha256(sign_string.encode('utf-8')).hexdigest()
+    
+    if sign_computed != sign_received:
+        return "wrong sign!", 400
+        
+    if status != 'paid':
+        return "OK", 200
+        
+    invoice = query_one("SELECT * FROM invoices WHERE id = ?", (pay_id,))
+    if not invoice:
+        return "invoice not found", 404
+        
+    if invoice["status"] == 'paid':
+        return "OK", 200
+        
+    execute_db("UPDATE invoices SET status = 'paid' WHERE id = ?", (pay_id,))
+    
+    user_id = invoice["user_id"]
+    user = query_one("SELECT * FROM users WHERE id = ?", (user_id,))
+    
+    if user:
+        now = datetime.now()
+        if user["expires_at"]:
+            try:
+                current_expires = datetime.strptime(user["expires_at"], "%Y-%m-%d")
+                if current_expires > now:
+                    new_expires = current_expires + timedelta(days=30)
+                else:
+                    new_expires = now + timedelta(days=30)
+            except ValueError:
+                new_expires = now + timedelta(days=30)
+        else:
+            new_expires = now + timedelta(days=30)
+            
+        expires_str = new_expires.strftime("%Y-%m-%d")
+        execute_db("UPDATE users SET status = 'active', expires_at = ? WHERE id = ?", (expires_str, user_id))
+        
+        telegram_id = user["telegram_id"]
+        if telegram_id:
+            bot_token = os.environ.get("BOT_TOKEN")
+            if bot_token:
+                msg = "✅ Подписка успешно оплачена! Доступ к VPN активен.\nСсылка на конфигурацию доступна в личном кабинете на сайте."
+                try:
+                    requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", data={
+                        "chat_id": telegram_id,
+                        "text": msg
+                    }, timeout=5)
+                except Exception:
+                    pass
+                
+    return "OK", 200
+
+
+
 @app.route("/logout")
 def logout():
     session.clear()

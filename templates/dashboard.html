@@ -151,25 +151,30 @@
             </p>
           {% elif raw_status == 'expired' %}
             <p class="dash-card__text">
-              Срок действия подписки закончился. Для продления свяжись со мной любым удобным способом.
+              Срок действия подписки закончился. Оплати продление, чтобы восстановить доступ к VPN.
             </p>
           {% else %}
             <p class="dash-card__text">
-              Подписка ещё не оформлена. Для получения доступа свяжись со мной любым удобным способом.
+              Подписка ещё не оформлена. Оплати подписку, чтобы получить безопасный и быстрый доступ к интернету.
             </p>
           {% endif %}
 
-          <div class="dash-contact-list">
+          {% if raw_status != 'active' and raw_status != 'pending' %}
+          <div style="margin-top: 2rem;">
+            <form action="{{ url_for('payment_pay') }}" method="POST">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+              <button type="submit" class="dash-btn" style="width: 100%; justify-content: center;">
+                Оплатить подписку (150 ₽ / мес)
+              </button>
+            </form>
+          </div>
+          {% endif %}
+
+          <div class="dash-contact-list" style="margin-top: 2rem;">
             <div class="dash-contact-item">
-              <span class="dash-contact-item__label">Telegram</span>
+              <span class="dash-contact-item__label">Поддержка (Telegram)</span>
               <span class="dash-contact-item__value">@qqv0il</span>
             </div>
-
-            <div class="dash-contact-item">
-              <span class="dash-contact-item__label">Email</span>
-              <span class="dash-contact-item__value">v.us.work@iclous.com</span>
-            </div>
-
           </div>
         {% endif %}
       </div>
