@@ -52,41 +52,61 @@ def get_user_by_tg(telegram_id: int):
     conn.close()
     return user
 
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.types import WebAppInfo
+
+def get_main_keyboard():
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="📱 Личный кабинет", web_app=WebAppInfo(url="https://jointhevoid.ru/dashboard")))
+    builder.row(InlineKeyboardButton(text="💬 Написать в поддержку", callback_data="support"))
+    return builder.as_markup()
+
 @dp.message(CommandStart())
 async def command_start_handler(message: types.Message) -> None:
     """
     This handler receives messages with `/start` command
     """
-    # Extract payload if any (e.g. /start token123 -> token123)
     args = message.text.split(maxsplit=1)
     payload = args[1] if len(args) > 1 else None
-
     telegram_id = message.from_user.id
 
     if payload:
         success = link_account(payload, telegram_id)
         if success:
             await message.answer(
-                f"✅ Успешно! Твой Telegram-аккаунт привязан к профилю на сайте.\n"
-                f"Теперь ты будешь получать здесь уведомления о подписке и свежие новости о Void VPN."
+                f"✅ <b>Успешно!</b> Твой Telegram-аккаунт привязан к профилю Void VPN.\n\n"
+                f"Теперь ты будешь получать здесь важные уведомления и можешь общаться с поддержкой.",
+                parse_mode="HTML",
+                reply_markup=get_main_keyboard()
             )
         else:
             await message.answer(
-                "❌ Ссылка для привязки недействительна или этот Telegram уже привязан к другому аккаунту."
+                "❌ Ссылка для привязки недействительна или этот Telegram уже привязан к другому аккаунту.",
+                reply_markup=get_main_keyboard()
             )
     else:
         user = get_user_by_tg(telegram_id)
+        welcome_text = (
+            "🌌 <b>Добро пожаловать в Void VPN!</b>\n\n"
+            "Здесь ты можешь управлять своей подпиской, быстро заходить в личный кабинет и обращаться в службу поддержки.\n\n"
+        )
         if user:
             name, status, expires = user
-            text = f"Привет, {name}! Твой аккаунт привязан.\nСтатус: {status}"
+            welcome_text += f"👤 <b>Пользователь:</b> {name}\n"
+            welcome_text += f"📊 <b>Статус:</b> {status}\n"
             if expires:
-                text += f"\nИстекает: {expires}"
-            await message.answer(text)
+                welcome_text += f"⏳ <b>Истекает:</b> {expires}\n"
         else:
-            await message.answer(
-                "Привет! Добро пожаловать в Void VPN.\n"
-                "Твой аккаунт пока не привязан к Telegram. Перейди в личный кабинет на сайте jointhevoid.ru и нажми кнопку «Привязать Telegram»."
+            welcome_text += (
+                "<i>Твой аккаунт пока не привязан к Telegram. Перейди в личный кабинет на сайте и нажми кнопку «Привязать Telegram».</i>"
             )
+            
+        await message.answer(welcome_text, parse_mode="HTML", reply_markup=get_main_keyboard())
+
+@dp.callback_query(F.data == "support")
+async def support_callback(callback: types.CallbackQuery):
+    await callback.answer("Просто напиши свой вопрос прямо в этот чат, и наша поддержка тебе ответит!", show_alert=True)
 
 import re
 from aiogram import F
