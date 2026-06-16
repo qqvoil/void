@@ -370,7 +370,10 @@ def auth_webapp():
         if getattr(g, 'user', None):
             # User is already logged in, let's link the TG account if possible
             current_user_id = g.user["id"]
-            if not existing_tg_user or existing_tg_user["id"] == current_user_id:
+            if existing_tg_user and existing_tg_user["id"] == current_user_id:
+                # Already linked properly
+                return {"success": True, "linked": False}
+            elif not existing_tg_user:
                 execute("UPDATE users SET telegram_id = ? WHERE id = ?", (telegram_id, current_user_id))
                 return {"success": True, "linked": True}
             else:
@@ -378,7 +381,7 @@ def auth_webapp():
                 session.clear()
                 session.permanent = True
                 session["user_id"] = existing_tg_user["id"]
-                return {"success": True}
+                return {"success": True, "linked": True}
                 
         # User not logged in
         if existing_tg_user:

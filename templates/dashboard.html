@@ -270,6 +270,7 @@
               });
               
               // Автоматическая привязка Telegram-аккаунта в Mini App
+              {% if not user.telegram_id %}
               if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
                   fetch('/auth/webapp', {
                       method: 'POST',
@@ -287,6 +288,7 @@
                   })
                   .catch(console.error);
               }
+              {% endif %}
             });
           </script>
 
