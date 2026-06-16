@@ -142,6 +142,10 @@ def inject_globals():
         "contact_phone": CONTACT_PHONE,
     }
 
+@app.route("/anypay-verification.txt")
+def anypay_verification():
+    return "39bb84b1154ceecdf62eb423d3a3"
+
 @app.route("/terms")
 def terms():
     return render_template("terms.html")
