@@ -8,6 +8,7 @@ CREATE TABLE users (
     status TEXT NOT NULL DEFAULT 'new',
     subscription_url TEXT,
     instructions_url TEXT,
+    has_trial_used BOOLEAN DEFAULT 0,
     expires_at TEXT,
     telegram_id INTEGER UNIQUE,
     tg_link_token TEXT UNIQUE,
