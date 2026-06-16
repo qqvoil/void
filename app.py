@@ -296,20 +296,33 @@ from datetime import datetime, timedelta
 def payment_pay():
     project_id = os.environ.get("ANYPAY_PROJECT_ID")
     secret_key = os.environ.get("ANYPAY_SECRET_KEY")
-    amount = os.environ.get("SUBSCRIPTION_PRICE", "150.00")
     
     if not project_id or not secret_key:
         flash("Оплата временно недоступна (касса не настроена).", "error")
         return redirect(url_for("dashboard"))
         
+    months_str = request.form.get("months", "1")
+    try:
+        months = int(months_str)
+    except ValueError:
+        months = 1
+        
+    prices = {
+        1: 200,
+        3: 510,
+        6: 960,
+        12: 1800
+    }
+    amount = prices.get(months, 200)
+        
     user_id = g.user["id"]
     
-    execute_db("INSERT INTO invoices (user_id, amount) VALUES (?, ?)", (user_id, int(float(amount))))
+    execute_db("INSERT INTO invoices (user_id, amount, months) VALUES (?, ?, ?)", (user_id, amount, months))
     invoice = query_one("SELECT * FROM invoices WHERE user_id = ? ORDER BY id DESC LIMIT 1", (user_id,))
     pay_id = str(invoice["id"])
     
     currency = "RUB"
-    desc = "Оплата подписки Void VPN"
+    desc = f"Оплата подписки Void VPN на {months} мес."
     
     success_url = url_for('dashboard', _external=True)
     fail_url = url_for('dashboard', _external=True)
@@ -362,17 +375,20 @@ def anypay_webhook():
     
     if user:
         now = datetime.now()
+        months_paid = invoice.get("months", 1)
+        days_to_add = months_paid * 30
+        
         if user["expires_at"]:
             try:
                 current_expires = datetime.strptime(user["expires_at"], "%Y-%m-%d")
                 if current_expires > now:
-                    new_expires = current_expires + timedelta(days=30)
+                    new_expires = current_expires + timedelta(days=days_to_add)
                 else:
-                    new_expires = now + timedelta(days=30)
+                    new_expires = now + timedelta(days=days_to_add)
             except ValueError:
-                new_expires = now + timedelta(days=30)
+                new_expires = now + timedelta(days=days_to_add)
         else:
-            new_expires = now + timedelta(days=30)
+            new_expires = now + timedelta(days=days_to_add)
             
         expires_str = new_expires.strftime("%Y-%m-%d")
         execute_db("UPDATE users SET status = 'active', expires_at = ? WHERE id = ?", (expires_str, user_id))

@@ -163,8 +163,29 @@
           <div style="margin-top: 2rem;">
             <form action="{{ url_for('payment_pay') }}" method="POST">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+              <p style="font-size: 0.9rem; color: rgba(240, 234, 229, 0.48); margin-bottom: 0.5rem;">Выберите тариф:</p>
+              
+              <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; cursor: pointer;">
+                  <input type="radio" name="months" value="1" checked>
+                  <span>1 месяц — 200 ₽</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; cursor: pointer;">
+                  <input type="radio" name="months" value="3">
+                  <span>3 месяца — 510 ₽ (скидка 15%)</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; cursor: pointer;">
+                  <input type="radio" name="months" value="6">
+                  <span>6 месяцев — 960 ₽ (скидка 20%)</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; cursor: pointer;">
+                  <input type="radio" name="months" value="12">
+                  <span>12 месяцев — 1800 ₽ (скидка 25%)</span>
+                </label>
+              </div>
+
               <button type="submit" class="dash-btn" style="width: 100%; justify-content: center;">
-                Оплатить подписку (150 ₽ / мес)
+                Перейти к оплате
               </button>
             </form>
           </div>
