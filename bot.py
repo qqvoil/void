@@ -67,7 +67,7 @@ from aiogram.types import WebAppInfo
 
 def get_main_keyboard():
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text="📱 Личный кабинет", web_app=WebAppInfo(url="https://jointhevoid.ru/webapp")))
+    builder.row(InlineKeyboardButton(text="📱 Личный кабинет", web_app=WebAppInfo(url="https://jointhevoid.ru/dashboard")))
     builder.row(InlineKeyboardButton(text="💬 Написать в поддержку", callback_data="support"))
     return builder.as_markup()
 
