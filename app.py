@@ -100,7 +100,8 @@ def execute(query, params=()):
 def login_required(view):
     @wraps(view)
     def wrapped_view(*args, **kwargs):
-        if not session.get("user_id"):
+        if getattr(g, 'user', None) is None:
+            session.clear()
             return redirect(url_for("login"))
         return view(*args, **kwargs)
 
