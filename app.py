@@ -160,6 +160,29 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/webapp")
+def webapp():
+    # Telegram Android WebApp sometimes gets stuck on 302 redirects.
+    # We return a 200 OK page that redirects via JS.
+    target_url = url_for("dashboard") if session.get("user_id") else url_for("login")
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Loading...</title>
+        <script>
+            window.location.replace("{target_url}");
+        </script>
+    </head>
+    <body style="background-color: #0a0a0a; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: sans-serif;">
+        <div style="text-align: center;">Загрузка...</div>
+    </body>
+    </html>
+    """
+
+
 #@app.route("/init-db")
 #def init_db_route():
 #    init_db()
