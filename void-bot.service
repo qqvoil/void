@@ -1,0 +1,13 @@
+[Unit]
+Description=Void VPN Telegram Bot
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/opt/void
+Environment="BOT_TOKEN=8836620836:AAH1EmA0KsEBwJ5A_H71jpoUj_Moo-Fwkc4"
+ExecStart=/opt/void/venv/bin/python bot.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

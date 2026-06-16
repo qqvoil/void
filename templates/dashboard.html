@@ -192,6 +192,21 @@
           </div>
         </aside>
 
+        {% if not user.telegram_id %}
+        <aside class="dash-card dash-side-card" style="margin-top: 1rem; border-color: rgba(42, 171, 238, 0.3);">
+          <span class="dash-card__kicker" style="color: #2AABEE;">Telegram</span>
+          <h2 class="dash-card__title">Привяжи аккаунт</h2>
+          <div class="dash-meta">
+            <p style="font-size: 0.85rem; line-height: 1.4; color: var(--color-text-dim); margin-bottom: 1rem;">
+              Получай мгновенные уведомления о подписке и свежие новости о Void VPN прямо в нашем боте!
+            </p>
+            <a href="https://t.me/jointhevoid_bot?start={{ user.tg_link_token }}" target="_blank" class="dash-btn" style="background: #2AABEE; color: #fff; width: 100%; justify-content: center; border: none;">
+              Привязать Telegram
+            </a>
+          </div>
+        </aside>
+        {% endif %}
+
         <div class="dash-side-bottom">
           <div class="dash-side-ticker" aria-hidden="true">
             <div class="dash-side-ticker__track">

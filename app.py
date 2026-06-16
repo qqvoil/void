@@ -235,16 +235,77 @@ def login():
     return render_template("login.html")
 
 
+import hashlib
+import hmac
+import time
+
+def check_telegram_authorization(auth_data: dict) -> bool:
+    bot_token = os.environ.get("BOT_TOKEN")
+    if not bot_token:
+        return False
+    check_hash = auth_data.pop('hash', None)
+    if not check_hash:
+        return False
+    
+    if time.time() - int(auth_data.get('auth_date', 0)) > 86400:
+        return False
+        
+    data_check_arr = [f"{key}={value}" for key, value in auth_data.items() if value]
+    data_check_arr.sort()
+    data_check_string = "\n".join(data_check_arr)
+    
+    secret_key = hashlib.sha256(bot_token.encode()).digest()
+    hash_computed = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+    
+    return hmac.compare_digest(hash_computed, check_hash)
+
+
+@app.route("/auth/telegram")
+def auth_telegram():
+    auth_data = request.args.to_dict()
+    if check_telegram_authorization(auth_data.copy()):
+        telegram_id = auth_data.get('id')
+        first_name = auth_data.get('first_name', 'Telegram User')
+        
+        user = query_one("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,))
+        if user:
+            session.clear()
+            session.permanent = True
+            session["user_id"] = user["id"]
+            return redirect(url_for("dashboard"))
+        else:
+            execute_db(
+                "INSERT INTO users (full_name, telegram_id, status) VALUES (?, ?, ?)",
+                (first_name, telegram_id, "new")
+            )
+            new_user = query_one("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,))
+            session.clear()
+            session.permanent = True
+            session["user_id"] = new_user["id"]
+            return redirect(url_for("dashboard"))
+    
+    flash("Ошибка авторизации Telegram", "error")
+    return redirect(url_for("login"))
+
+
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("index"))
 
 
+import secrets
+
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    return render_template("dashboard.html", user=g.user)
+    user = dict(g.user) if g.user else {}
+    if not user.get("telegram_id") and not user.get("tg_link_token"):
+        # Generate a new token
+        token = secrets.token_urlsafe(16)
+        execute_db("UPDATE users SET tg_link_token = ? WHERE id = ?", (token, user["id"]))
+        user["tg_link_token"] = token
+    return render_template("dashboard.html", user=user)
 
 
 @app.route("/inst-landing")

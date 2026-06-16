@@ -12,7 +12,14 @@
   <form method="post" action="{{ url_for('admin_update_user', user_id=user.id) }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     <p><strong>ID:</strong> {{ user.id }}</p>
-
+    {% if user.is_legacy %}
+      <p style="color: #ff6b6b; font-weight: bold; font-size: 0.8rem; margin-top: -10px; margin-bottom: 5px;">[Legacy Аккаунт]</p>
+    {% endif %}
+    {% if user.telegram_id %}
+      <p style="color: #4CAF50; font-size: 0.8rem; margin-top: -5px; margin-bottom: 10px;">[Telegram привязан]</p>
+    {% else %}
+      <p style="color: #fca311; font-size: 0.8rem; margin-top: -5px; margin-bottom: 10px;">[Telegram НЕ привязан]</p>
+    {% endif %}
     <label>ФИО</label>
     <input type="text" name="full_name" value="{{ user.full_name }}" required>
 
