@@ -120,31 +120,50 @@ async def support_callback(callback: types.CallbackQuery):
 import re
 from aiogram import F
 
-@dp.message(F.text & ~F.text.startswith('/'))
-async def handle_text_messages(message: types.Message) -> None:
+@dp.message()
+async def handle_all_messages(message: types.Message) -> None:
+    if message.text and message.text.startswith('/'):
+        return
+
     admin_id_str = os.environ.get("ADMIN_TG_ID")
     if not admin_id_str:
         return
         
     admin_id = int(admin_id_str)
     
+    # Check if admin is replying to a forwarded user message
     if message.from_user.id == admin_id and message.reply_to_message:
-        replied_text = message.reply_to_message.text or ""
+        replied_text = message.reply_to_message.text or message.reply_to_message.caption or ""
         match = re.search(r"ID:\s*(\d+)", replied_text)
         if match:
             user_id = int(match.group(1))
             try:
-                await bot.send_message(user_id, f"👨‍💻 <b>Служба поддержки:</b>\n\n{message.text}", parse_mode="HTML")
+                if message.text:
+                    await bot.send_message(user_id, f"👨‍💻 <b>Служба поддержки:</b>\n\n{message.text}", parse_mode="HTML")
+                else:
+                    original_caption = message.caption or ""
+                    new_caption = f"👨‍💻 <b>Служба поддержки:</b>\n\n{original_caption}"
+                    if len(new_caption) > 1024:
+                        new_caption = new_caption[:1020] + "..."
+                    await message.copy_to(user_id, caption=new_caption, parse_mode="HTML")
             except Exception as e:
                 await message.answer(f"❌ Не удалось отправить ответ пользователю: {e}")
             return
             
+    # Forward user messages to admin
     if message.from_user.id != admin_id:
         username = f"@{message.from_user.username}" if message.from_user.username else "Без юзернейма"
-        forward_text = f"💬 <b>Новое обращение:</b>\n\nОт: {message.from_user.full_name} ({username})\nID: {message.from_user.id}\n\n{message.text}"
+        user_info = f"От: {message.from_user.full_name} ({username})\nID: {message.from_user.id}"
         
         try:
-            await bot.send_message(admin_id, forward_text, parse_mode="HTML")
+            if message.text:
+                await bot.send_message(admin_id, f"💬 <b>Новое обращение:</b>\n\n{user_info}\n\n{message.text}", parse_mode="HTML")
+            else:
+                original_caption = message.caption or ""
+                new_caption = f"💬 <b>Новое обращение:</b>\n{user_info}\n\n{original_caption}"
+                if len(new_caption) > 1024:
+                    new_caption = new_caption[:1020] + "..."
+                await message.copy_to(admin_id, caption=new_caption, parse_mode="HTML")
             await message.answer("✅ Ваше сообщение передано в техподдержку. Мы скоро ответим!")
         except Exception as e:
             logging.error(f"Failed to forward message to admin: {e}")
