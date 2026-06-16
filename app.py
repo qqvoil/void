@@ -457,9 +457,9 @@ def get_remnawave_squad_uuid(api_key):
             timeout=5
         )
         if resp.status_code == 200:
-            users = resp.json()
+            users = resp.json().get("response", [])
             for u in users:
-                if u.get("activeInternalSquads"):
+                if isinstance(u, dict) and u.get("activeInternalSquads"):
                     return u["activeInternalSquads"][0]["uuid"]
     except Exception as e:
         logging.error(f"Error fetching squad: {e}")
@@ -484,8 +484,8 @@ def remnawave_create_or_extend_user(username, expire_date_str):
     users_resp = requests.get("https://panel.jointhevoid.ru/api/users", headers=headers, timeout=5)
     existing_user = None
     if users_resp.status_code == 200:
-        for u in users_resp.json():
-            if u.get("username") == username:
+        for u in users_resp.json().get("response", []):
+            if isinstance(u, dict) and u.get("username") == username:
                 existing_user = u
                 break
                 
