@@ -205,9 +205,9 @@ def register():
         error = None
 
         if not full_name:
-            error = "Введите ФИО."
-        elif len(full_name) < 5:
-            error = "ФИО выглядит слишком коротким."
+            error = "Введите логин."
+        elif len(full_name) < 3:
+            error = "Логин слишком короткий (минимум 3 символа)."
         elif not password:
             error = "Введите пароль."
         elif len(password) < 6:
@@ -220,7 +220,7 @@ def register():
             (full_name,),
         )
         if existing_user:
-            error = "Пользователь с таким ФИО уже существует."
+            error = "Этот логин уже занят. Пожалуйста, придумайте другой."
 
         if error is None:
             password_hash = generate_password_hash(password)
@@ -532,13 +532,13 @@ def set_password():
         return redirect(url_for("dashboard"))
         
     if not new_login or len(new_login) < 3:
-        flash("Логин (ФИО) должен быть не короче 3 символов.", "error")
+        flash("Логин должен быть не короче 3 символов.", "error")
         return redirect(url_for("dashboard"))
         
     # Check if login is unique (excluding current user)
     existing = query_one("SELECT id FROM users WHERE lower(full_name) = lower(?) AND id != ?", (new_login, g.user["id"]))
     if existing:
-        flash("Этот логин (ФИО) уже занят другим пользователем. Пожалуйста, придумайте другой (например, добавьте фамилию или цифры).", "error")
+        flash("Этот логин уже занят другим пользователем. Пожалуйста, придумайте другой (например, добавьте цифры).", "error")
         return redirect(url_for("dashboard"))
 
     password_hash = generate_password_hash(password)

@@ -267,10 +267,10 @@
       <div class="dash-card__body">
         <p style="font-size: 0.9rem; color: rgba(255,255,255,0.7); margin-bottom: 1rem;">
           Вы зарегистрировались через Telegram. Если Telegram будет заблокирован, вы не сможете войти в личный кабинет. 
-          Пожалуйста, задайте уникальный логин (ФИО) и пароль, чтобы всегда иметь доступ на сайт:
+          Пожалуйста, задайте уникальный логин и пароль, чтобы всегда иметь доступ на сайт:
         </p>
         <form action="{{ url_for('set_password') }}" method="POST" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-          <input type="text" name="login" value="{{ user.full_name }}" placeholder="Придумайте логин (ФИО)" required style="flex: 1; min-width: 200px; padding: 0.8rem 1.2rem; border-radius: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); color: #fff; font-size: 1rem;">
+          <input type="text" name="login" value="{{ user.full_name }}" placeholder="Придумайте логин" required style="flex: 1; min-width: 200px; padding: 0.8rem 1.2rem; border-radius: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); color: #fff; font-size: 1rem;">
           <input type="password" name="password" placeholder="Придумайте пароль" required style="flex: 1; min-width: 200px; padding: 0.8rem 1.2rem; border-radius: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); color: #fff; font-size: 1rem;">
           <button type="submit" class="dash-btn" style="background: rgba(255, 255, 255, 0.05); color: #fff; flex: 1; min-width: 150px;">Сохранить</button>
         </form>
