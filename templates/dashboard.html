@@ -194,7 +194,7 @@
           <div class="dash-contact-list" style="margin-top: 2rem;">
             <div class="dash-contact-item">
               <span class="dash-contact-item__label">Поддержка (Telegram)</span>
-              <span class="dash-contact-item__value">@qqv0il</span>
+              <a href="https://t.me/jointhevoid_bot" target="_blank" class="dash-contact-item__value" style="color: inherit; text-decoration: none;">@jointhevoid_bot</a>
             </div>
           </div>
         {% endif %}
@@ -219,14 +219,14 @@
         </aside>
 
         {% if not user.telegram_id %}
-        <aside class="dash-card dash-side-card" style="margin-top: 1rem; border-color: rgba(42, 171, 238, 0.3);">
+        <aside class="dash-card dash-side-card" style="margin-top: 1rem; border-color: rgba(42, 171, 238, 0.15); box-shadow: 0 8px 32px rgba(26, 136, 199, 0.05);">
           <span class="dash-card__kicker" style="color: #2AABEE;">Telegram</span>
           <h2 class="dash-card__title">Привяжи аккаунт</h2>
           <div class="dash-meta">
             <p style="font-size: 0.85rem; line-height: 1.4; color: var(--color-text-dim); margin-bottom: 1rem;">
               Получай мгновенные уведомления о подписке и свежие новости о Void VPN прямо в нашем боте!
             </p>
-            <a href="https://t.me/jointhevoid_bot?start={{ user.tg_link_token }}" target="_blank" class="dash-btn" style="background: #2AABEE; color: #fff; width: 100%; justify-content: center; border: none;">
+            <a href="https://t.me/jointhevoid_bot?start={{ user.tg_link_token }}" target="_blank" class="dash-btn" style="background: linear-gradient(135deg, #1a88c7 0%, #0e6495 100%); box-shadow: 0 4px 15px rgba(42, 171, 238, 0.2); color: #fff; width: 100%; justify-content: center; border: 1px solid rgba(42, 171, 238, 0.3);">
               Привязать Telegram
             </a>
           </div>

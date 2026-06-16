@@ -88,6 +88,38 @@ async def command_start_handler(message: types.Message) -> None:
                 "Твой аккаунт пока не привязан к Telegram. Перейди в личный кабинет на сайте jointhevoid.ru и нажми кнопку «Привязать Telegram»."
             )
 
+import re
+from aiogram import F
+
+@dp.message(F.text & ~F.text.startswith('/'))
+async def handle_text_messages(message: types.Message) -> None:
+    admin_id_str = os.environ.get("ADMIN_TG_ID")
+    if not admin_id_str:
+        return
+        
+    admin_id = int(admin_id_str)
+    
+    if message.from_user.id == admin_id and message.reply_to_message:
+        replied_text = message.reply_to_message.text or ""
+        match = re.search(r"ID:\s*(\d+)", replied_text)
+        if match:
+            user_id = int(match.group(1))
+            try:
+                await bot.send_message(user_id, f"👨‍💻 <b>Служба поддержки:</b>\n\n{message.text}", parse_mode="HTML")
+            except Exception as e:
+                await message.answer(f"❌ Не удалось отправить ответ пользователю: {e}")
+            return
+            
+    if message.from_user.id != admin_id:
+        username = f"@{message.from_user.username}" if message.from_user.username else "Без юзернейма"
+        forward_text = f"💬 <b>Новое обращение:</b>\n\nОт: {message.from_user.full_name} ({username})\nID: {message.from_user.id}\n\n{message.text}"
+        
+        try:
+            await bot.send_message(admin_id, forward_text, parse_mode="HTML")
+            await message.answer("✅ Ваше сообщение передано в техподдержку. Мы скоро ответим!")
+        except Exception as e:
+            logging.error(f"Failed to forward message to admin: {e}")
+
 async def main() -> None:
     # Start polling
     await dp.start_polling(bot)
