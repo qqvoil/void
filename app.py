@@ -316,6 +316,67 @@ def auth_telegram():
     return redirect(url_for("login"))
 
 
+def check_webapp_authorization(init_data: str) -> bool:
+    import urllib.parse
+    bot_token = os.environ.get("BOT_TOKEN")
+    if not bot_token:
+        return False
+        
+    parsed_data = urllib.parse.parse_qsl(init_data)
+    auth_data = dict(parsed_data)
+    
+    check_hash = auth_data.pop('hash', None)
+    if not check_hash:
+        return False
+        
+    data_check_arr = [f"{key}={value}" for key, value in auth_data.items()]
+    data_check_arr.sort()
+    data_check_string = "\n".join(data_check_arr)
+    
+    secret_key = hmac.new(b"WebAppData", bot_token.encode(), hashlib.sha256).digest()
+    hash_computed = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+    
+    return hmac.compare_digest(hash_computed, check_hash)
+
+
+@app.route("/auth/webapp", methods=["POST"])
+def auth_webapp():
+    init_data = request.json.get('initData')
+    if not init_data:
+        return {"success": False, "error": "No initData"}
+        
+    if check_webapp_authorization(init_data):
+        import urllib.parse
+        import json
+        parsed = dict(urllib.parse.parse_qsl(init_data))
+        user_data = json.loads(parsed.get('user', '{}'))
+        
+        telegram_id = user_data.get('id')
+        first_name = user_data.get('first_name', 'Telegram User')
+        
+        if not telegram_id:
+            return {"success": False, "error": "No telegram_id"}
+            
+        user = query_one("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,))
+        if user:
+            session.clear()
+            session.permanent = True
+            session["user_id"] = user["id"]
+            return {"success": True}
+        else:
+            execute(
+                "INSERT INTO users (full_name, telegram_id, status) VALUES (?, ?, ?)",
+                (first_name, telegram_id, "new")
+            )
+            new_user = query_one("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,))
+            session.clear()
+            session.permanent = True
+            session["user_id"] = new_user["id"]
+            return {"success": True}
+            
+    return {"success": False, "error": "Invalid hash"}
+
+
 import requests
 from datetime import datetime, timedelta
 

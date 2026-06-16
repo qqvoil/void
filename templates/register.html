@@ -302,9 +302,31 @@
       <div class="reg-bottom">
         <p>
           Уже есть аккаунт?
-          <a href="{{ url_for('login') }}" class="reg-link">Войти</a>
+          <a href="{{ url_for('login') }}" class="reg-link">Уже есть аккаунт? <strong>Войти</strong></a>
         </p>
       </div>
+      
+      <script>
+      document.addEventListener("DOMContentLoaded", function() {
+          if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
+              fetch('/auth/webapp', {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ initData: window.Telegram.WebApp.initData })
+              })
+              .then(res => res.json())
+              .then(data => {
+                  if (data.success) {
+                      window.location.href = "{{ url_for('dashboard') }}";
+                  }
+              })
+              .catch(console.error);
+          }
+      });
+      </script>
+      
     </div>
   </div>
 </div>
