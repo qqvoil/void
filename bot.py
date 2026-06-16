@@ -11,9 +11,12 @@ logging.basicConfig(level=logging.INFO)
 
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.client.telegram import TelegramAPIServer
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Initialize bot and dispatcher
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
+BOT_TOKEN = os.environ.get("BOT_TOKEN") or os.environ.get("TG_BOT_TOKEN")
 if not BOT_TOKEN:
     raise ValueError("No BOT_TOKEN provided in environment variables")
 
