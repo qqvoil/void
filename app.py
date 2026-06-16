@@ -274,7 +274,7 @@ def auth_telegram():
             session["user_id"] = user["id"]
             return redirect(url_for("dashboard"))
         else:
-            execute_db(
+            execute(
                 "INSERT INTO users (full_name, telegram_id, status) VALUES (?, ?, ?)",
                 (first_name, telegram_id, "new")
             )
@@ -317,7 +317,7 @@ def payment_pay():
         
     user_id = g.user["id"]
     
-    execute_db("INSERT INTO invoices (user_id, amount, months) VALUES (?, ?, ?)", (user_id, amount, months))
+    execute("INSERT INTO invoices (user_id, amount, months) VALUES (?, ?, ?)", (user_id, amount, months))
     invoice = query_one("SELECT * FROM invoices WHERE user_id = ? ORDER BY id DESC LIMIT 1", (user_id,))
     pay_id = str(invoice["id"])
     
@@ -368,7 +368,7 @@ def anypay_webhook():
     if invoice["status"] == 'paid':
         return "OK", 200
         
-    execute_db("UPDATE invoices SET status = 'paid' WHERE id = ?", (pay_id,))
+    execute("UPDATE invoices SET status = 'paid' WHERE id = ?", (pay_id,))
     
     user_id = invoice["user_id"]
     user = query_one("SELECT * FROM users WHERE id = ?", (user_id,))
@@ -391,7 +391,7 @@ def anypay_webhook():
             new_expires = now + timedelta(days=days_to_add)
             
         expires_str = new_expires.strftime("%Y-%m-%d")
-        execute_db("UPDATE users SET status = 'active', expires_at = ? WHERE id = ?", (expires_str, user_id))
+        execute("UPDATE users SET status = 'active', expires_at = ? WHERE id = ?", (expires_str, user_id))
         
         telegram_id = user["telegram_id"]
         if telegram_id:
@@ -425,7 +425,7 @@ def dashboard():
     if not user.get("telegram_id") and not user.get("tg_link_token"):
         # Generate a new token
         token = secrets.token_urlsafe(16)
-        execute_db("UPDATE users SET tg_link_token = ? WHERE id = ?", (token, user["id"]))
+        execute("UPDATE users SET tg_link_token = ? WHERE id = ?", (token, user["id"]))
         user["tg_link_token"] = token
     return render_template("dashboard.html", user=user)
 
