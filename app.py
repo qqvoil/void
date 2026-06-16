@@ -437,8 +437,8 @@ def payment_pay():
     currency = "RUB"
     desc = f"Void VPN Subscription ({months} months)"
     
-    success_url = "https://jointhevoid.ru/dashboard"
-    fail_url = "https://jointhevoid.ru/dashboard"
+    success_url = ""
+    fail_url = ""
     
     sign_string = f"{project_id}:{pay_id}:{amount}:{currency}:{desc}:{success_url}:{fail_url}:{secret_key}"
     sign = hashlib.sha256(sign_string.encode('utf-8')).hexdigest()
@@ -450,8 +450,6 @@ def payment_pay():
         "amount": amount,
         "currency": currency,
         "desc": desc,
-        "success_url": success_url,
-        "fail_url": fail_url,
         "sign": sign
     }
     
