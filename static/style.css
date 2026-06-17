@@ -755,6 +755,7 @@ button, input, select, textarea {
 
 .pricing-card__badge {
   display: inline-block;
+  align-self: center;
   font-size: 0.72rem;
   letter-spacing: 0.08em;
   padding: 4px 12px;
