@@ -870,17 +870,19 @@ def admin_broadcast():
         tg_id = u["telegram_id"]
         try:
             if attach_image:
-                payload = {"chat_id": tg_id, "photo": "https://jointhevoid.ru/static/img/fill_comp.png", "caption": text, "parse_mode": "HTML"}
-                endpoint = "sendPhoto"
+                with open("/opt/void/static/img/fill_tiny.jpg", "rb") as f:
+                    resp = requests.post(
+                        f"http://91.238.123.4:10080/bot{bot_token}/sendPhoto",
+                        data={"chat_id": tg_id, "caption": text, "parse_mode": "HTML"},
+                        files={"photo": f},
+                        timeout=10
+                    )
             else:
-                payload = {"chat_id": tg_id, "text": text, "parse_mode": "HTML"}
-                endpoint = "sendMessage"
-                
-            resp = requests.post(
-                f"http://91.238.123.4:10080/bot{bot_token}/{endpoint}",
-                json=payload,
-                timeout=5
-            )
+                resp = requests.post(
+                    f"http://91.238.123.4:10080/bot{bot_token}/sendMessage",
+                    json={"chat_id": tg_id, "text": text, "parse_mode": "HTML"},
+                    timeout=5
+                )
             if resp.status_code == 200:
                 success_count += 1
             time.sleep(0.05) # Prevent rate limiting
