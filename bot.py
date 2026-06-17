@@ -103,21 +103,21 @@ async def command_start_handler(message: types.Message) -> None:
         if success:
             await send_or_update_menu(
                 telegram_id,
-                f"✅ <b>Успешно!</b> Твой Telegram-аккаунт привязан к профилю Void VPN.\n\n"
-                f"Теперь ты будешь получать здесь важные уведомления и можешь общаться с поддержкой.",
+                f"✅ <b>Доступ подтвержден.</b> Твой Telegram привязан к элитному профилю Void VPN.\n\n"
+                f"Отныне все важные уведомления и премиум-поддержка будут приходить сюда.",
                 get_main_keyboard()
             )
         else:
             await send_or_update_menu(
                 telegram_id,
-                "❌ Ссылка для привязки недействительна или этот Telegram уже привязан к другому аккаунту.",
+                "❌ Ошибка авторизации. Ссылка устарела, либо кто-то уже занял это место.",
                 get_main_keyboard()
             )
     else:
         user = get_user_by_tg(telegram_id)
         welcome_text = (
-            "🌌 <b>Добро пожаловать в Void VPN!</b>\n\n"
-            "Здесь ты можешь управлять своей подпиской, быстро заходить в личный кабинет и обращаться в службу поддержки.\n\n"
+            "🌌 <b>Void VPN. Исключительный доступ.</b>\n\n"
+            "Твоя приватная зона управления подпиской. Настройки, статистика и VIP-поддержка — всё здесь.\n\n"
         )
         if user:
             name, status, expires = user["full_name"], user["status"], user["expires_at"]
@@ -127,14 +127,14 @@ async def command_start_handler(message: types.Message) -> None:
                 welcome_text += f"⏳ <b>Истекает:</b> {expires}\n"
         else:
             welcome_text += (
-                "<i>Твой аккаунт пока не привязан к Telegram. Перейди в личный кабинет на сайте и нажми кнопку «Привязать Telegram».</i>"
+                "<i>Твой профиль пока не синхронизирован. Зайди в личный кабинет и нажми «Привязать Telegram», чтобы открыть полный функционал.</i>"
             )
             
         await send_or_update_menu(telegram_id, welcome_text, get_main_keyboard())
 
 @dp.callback_query(F.data == "support")
 async def support_callback(callback: types.CallbackQuery):
-    await callback.answer("Просто напиши свой вопрос прямо в этот чат, и наша поддержка тебе ответит!", show_alert=True)
+    await callback.answer("Возникли вопросы? Пиши прямо сюда. Моя команда решит всё в лучшем виде.", show_alert=True)
 
 @dp.callback_query(F.data == "referral")
 async def referral_callback(callback: types.CallbackQuery):
@@ -146,10 +146,9 @@ async def referral_callback(callback: types.CallbackQuery):
         
     ref_link = f"https://jointhevoid.ru/register?ref={user['id']}"
     msg = (
-        "🎁 <b>Реферальная программа</b>\n\n"
-        "Пригласи друга по своей ссылке и получи бонус!\n\n"
-        "Когда твой друг впервые оплатит подписку, ты автоматически получишь <b>+7 бесплатных дней</b>. А твой друг сразу получит 7 дней триала вместо 5.\n\n"
-        f"🔗 <b>Твоя ссылка:</b>\n`{ref_link}`"
+        "🎁 <b>VIP Реферальная программа</b>\n\n"
+        "Скинь ссылку своим. Как только кто-то из них зайдет и оплатит подписку, я молча накину тебе <b>+7 дней</b> элитного доступа за каждые 200₽ его оплаты. Твой друг, кстати, тоже кайфанет — он получит 7 дней триала вместо 5.\n\n"
+        f"🔗 <b>Твой личный инвайт-линк:</b>\n`{ref_link}`"
     )
     
     # Check if this menu is already displaying referral text
@@ -206,7 +205,7 @@ async def handle_all_messages(message: types.Message) -> None:
                 await message.copy_to(admin_id, caption=new_caption, parse_mode="HTML")
             
             # Send confirmation and delete user's message to keep chat clean
-            msg = await message.answer("✅ Ваше сообщение передано в техподдержку. Мы скоро ответим!")
+            msg = await message.answer("✅ Принял. Запрос ушел инженерам. Жди ответа.")
             await asyncio.sleep(3)
             try:
                 await message.delete()
@@ -243,22 +242,22 @@ async def notification_worker():
                 
                 # Check 3 days
                 if 24 < hours_left <= 72 and not u["notified_3d"]:
-                    await bot.send_message(u["telegram_id"], "⚠️ Твоя подписка истекает через 3 дня. Продли её сейчас в личном кабинете, чтобы не остаться без интернета!", reply_markup=get_main_keyboard())
+                    await bot.send_message(u["telegram_id"], "⚠️ Твой доступ к Void VPN истекает через 3 дня. Не тяни, продли подписку в личном кабинете.", reply_markup=get_main_keyboard())
                     cursor.execute("UPDATE users SET notified_3d = 1 WHERE id = ?", (u["id"],))
                     
                 # Check 1 day
                 elif 10 < hours_left <= 24 and not u["notified_1d"]:
-                    await bot.send_message(u["telegram_id"], "⏳ Твоя подписка истекает уже завтра! Успей продлить.", reply_markup=get_main_keyboard())
+                    await bot.send_message(u["telegram_id"], "⏳ Твоя подписка сгорит уже завтра. Продлевай, пока не остался без качественного интернета.", reply_markup=get_main_keyboard())
                     cursor.execute("UPDATE users SET notified_1d = 1 WHERE id = ?", (u["id"],))
                     
                 # Check 10 hours
                 elif 1 < hours_left <= 10 and not u["notified_10h"]:
-                    await bot.send_message(u["telegram_id"], "❗️ Твоя подписка истекает менее чем через 10 часов! Продли доступ.", reply_markup=get_main_keyboard())
+                    await bot.send_message(u["telegram_id"], "❗️ Меньше 10 часов до отключения. Советую зайти и оплатить, чтобы потом не страдать от блокировок.", reply_markup=get_main_keyboard())
                     cursor.execute("UPDATE users SET notified_10h = 1 WHERE id = ?", (u["id"],))
                     
                 # Check 1 hour
                 elif 0 < hours_left <= 1 and not u["notified_1h"]:
-                    await bot.send_message(u["telegram_id"], "🔴 ВНИМАНИЕ: Подписка истекает менее чем через час! Доступ к VPN будет приостановлен.", reply_markup=get_main_keyboard())
+                    await bot.send_message(u["telegram_id"], "🔴 ВНИМАНИЕ: Подписка истекает менее чем через час. Дальше — только серый и скучный интернет без VPN.", reply_markup=get_main_keyboard())
                     cursor.execute("UPDATE users SET notified_1h = 1 WHERE id = ?", (u["id"],))
 
             conn.commit()

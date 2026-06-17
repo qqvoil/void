@@ -241,7 +241,7 @@ def register():
             """,
                 (full_name, password_hash, "/inst-landing", referrer_id),
             )
-            flash("Регистрация успешна. Теперь войдите в аккаунт.", "success")
+            flash("Аккаунт создан. Заходи.", "success")
             return redirect(url_for("login"))
 
         flash(error, "error")
@@ -623,15 +623,12 @@ def anypay_webhook():
         if telegram_id:
             bot_token = os.environ.get("BOT_TOKEN")
             if bot_token:
-                msg = "✅ Подписка успешно оплачена! Доступ к VPN активен.\n"
-                if sub_url:
-                    msg += f"\nВот ваша ссылка на подключение:\n`{sub_url}`\n"
-                msg += "\nСсылка на конфигурацию также доступна в личном кабинете на сайте."
-                
+                msg = f"✅ <b>Доступ активирован.</b> Оплата прошла, добро пожаловать в нормальный интернет.\n\nТвоя ссылка на конфигурацию:\n`{sub_url}`\n\nМожешь найти её и в личном кабинете, если потеряешь."
                 try:
                     requests.post(f"http://91.238.123.4:10080/bot{bot_token}/sendMessage", data={
                         "chat_id": telegram_id,
-                        "text": msg
+                        "text": msg,
+                        "parse_mode": "HTML"
                     }, timeout=5)
                 except Exception:
                     pass
@@ -677,7 +674,7 @@ def anypay_webhook():
                         # Notify referrer
                         ref_tg_id = referrer["telegram_id"]
                         if ref_tg_id and bot_token:
-                            ref_msg = f"🎉 <b>Ура! Твой друг оплатил подписку.</b>\n\nТебе начислено <b>+{bonus_days} дней</b> к подписке в качестве бонуса по реферальной программе!\n\nНовая дата окончания: {ref_exp_str}"
+            ref_msg = f"🎉 <b>Твоя рефералка сработала!</b>\n\nТвой кент оплатил подписку, а я накинул тебе <b>+{bonus_days} дней</b> сверху.\n\nДоступ открыт до: {ref_exp_str}. Продолжай в том же духе."
                             try:
                                 requests.post(f"http://91.238.123.4:10080/bot{bot_token}/sendMessage", data={
                                     "chat_id": ref_tg_id,
@@ -700,7 +697,7 @@ def activate_trial():
         return redirect(url_for("dashboard"))
         
     if user["status"] == "active" or user["expires_at"]:
-        flash("У вас уже есть подписка.", "error")
+        flash("У тебя уже есть подписка. Куда еще?", "error")
         return redirect(url_for("dashboard"))
         
     # Give 7 days trial if user was referred, else 5 days
@@ -736,7 +733,7 @@ def activate_trial():
         if telegram_id:
             bot_token = os.environ.get("BOT_TOKEN")
             if bot_token:
-                msg = f"🎁 Пробный период на 5 дней активирован!\n\nВот ваша ссылка на подключение:\n`{sub_url}`\n\nПриятного пользования!"
+                msg = f"🎁 <b>VIP Триал активирован!</b>\n\nЯ дал тебе 5 дней безлимита на максималках, чтобы ты заценил скорость. Лови ссылку:\n`{sub_url}`\n\nНаслаждайся."
                 try:
                     requests.post(f"http://91.238.123.4:10080/bot{bot_token}/sendMessage", data={
                         "chat_id": telegram_id,
@@ -830,11 +827,11 @@ def admin_login():
         login_value = request.form.get("login", "").strip()
         password = request.form.get("password", "")
 
-        error = "Неверный логин или пароль."
+        error = "Логин или пароль мимо."
 
         if not ADMIN_PASSWORD_HASH:
             flash(
-                "ADMIN_PASSWORD_HASH не задан. Сначала добавь переменные окружения.",
+                "Конфигурация сервера неполная. Задай ADMIN_PASSWORD_HASH.",
                 "error",
             )
             return render_template("admin_login.html")
