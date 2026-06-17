@@ -147,27 +147,27 @@
 
           {% if raw_status == 'pending' %}
             <p class="dash-card__text">
-              Твоя заявка у инженеров. Как только выделят мощности, ссылка появится прямо здесь. Жди.
+              Ваша заявка находится в обработке, и ссылка на подключение появится здесь сразу после выделения необходимых ресурсов.
             </p>
           {% elif raw_status == 'expired' %}
             <p class="dash-card__text">
-              Время вышло. Оплати подписку, чтобы вернуть себе быстрый и свободный интернет без блокировок.
+              Срок действия вашей подписки подошел к концу, но вы можете восстановить доступ, оплатив продление.
             </p>
           {% else %}
             <p class="dash-card__text">
-              Твоя подписка пока не активна. Оплати доступ, чтобы получить приватный и неограниченный интернет без лагов.
+              На данный момент у вас нет активной подписки. Пожалуйста, выберите подходящий тариф ниже, чтобы получить безопасный и неограниченный доступ к интернету.
             </p>
             
             {% if user.has_trial_used == 0 %}
             <div style="margin-top: 1.5rem; padding: 1.5rem; background: rgba(76, 175, 80, 0.1); border: 1px solid rgba(76, 175, 80, 0.3); border-radius: 12px; text-align: center;">
-              <h3 style="color: #4CAF50; margin-bottom: 0.5rem; font-size: 1.2rem;">Возьми 5 дней VIP бесплатно</h3>
+              <h3 style="color: #4CAF50; margin-bottom: 0.5rem; font-size: 1.2rem;">Пробный период</h3>
               <p style="color: rgba(255,255,255,0.8); margin-bottom: 1rem; font-size: 0.95rem;">
-                Оцени скорость без обязательств. Активируй триал и почувствуй разницу.
+                Мы предлагаем вам активировать пробный период на 5 дней, чтобы вы могли лично оценить качество и скорость нашего соединения.
               </p>
               <form action="{{ url_for('activate_trial') }}" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <button type="submit" class="dash-btn" style="width: 100%; justify-content: center; background: #4CAF50; color: white; border: none;">
-                  Взять бесплатный доступ
+                  Активировать
                 </button>
               </form>
             </div>
@@ -178,7 +178,7 @@
           <div style="margin-top: 2rem;">
             <form action="{{ url_for('payment_pay') }}" method="POST">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-              <p style="font-size: 0.9rem; color: rgba(240, 234, 229, 0.48); margin-bottom: 0.5rem;">Выбери тариф (чем дольше, тем выгоднее):</p>
+              <p style="font-size: 0.9rem; color: rgba(240, 234, 229, 0.48); margin-bottom: 0.5rem;">Выберите тариф:</p>
               
               <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
                 <label style="display: flex; align-items: center; gap: 0.5rem; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; cursor: pointer;">
@@ -236,10 +236,10 @@
         {% if not user.telegram_id %}
         <aside class="dash-card dash-side-card" style="margin-top: 1rem; border-color: rgba(42, 171, 238, 0.15); box-shadow: 0 8px 32px rgba(26, 136, 199, 0.05);">
           <span class="dash-card__kicker" style="color: #2AABEE;">Telegram</span>
-              <h2 class="dash-card__title">Синхронизируй Telegram</h2>
+              <h2 class="dash-card__title">Привязка Telegram</h2>
           <div class="dash-meta">
             <p style="font-size: 0.85rem; line-height: 1.4; color: var(--color-text-dim); margin-bottom: 1rem;">
-              Получай все важные пуши и статус подписки прямо в мессенджер. Без лишнего спама, только по делу.
+              Мы рекомендуем синхронизировать ваш аккаунт с Telegram, чтобы вы могли своевременно получать уведомления об окончании подписки и управлять доступом.
             </p>
             <a href="https://t.me/jointhevoid_bot?start={{ user.tg_link_token }}" target="_blank" class="dash-btn" style="background: linear-gradient(135deg, #1a88c7 0%, #0e6495 100%); box-shadow: 0 4px 15px rgba(42, 171, 238, 0.2); color: #fff; width: 100%; justify-content: center; border: 1px solid rgba(42, 171, 238, 0.3);">
               Привязать Telegram
@@ -250,10 +250,10 @@
 
         <aside class="dash-card dash-side-card" style="margin-top: 1rem; border-color: rgba(255, 107, 107, 0.15); box-shadow: 0 8px 32px rgba(255, 107, 107, 0.05);">
           <span class="dash-card__kicker" style="color: #ff6b6b;">Бонусы</span>
-          <h2 class="dash-card__title">Забирай свои дни</h2>
+          <h2 class="dash-card__title">Приглашения</h2>
           <div class="dash-meta">
             <p style="font-size: 0.85rem; line-height: 1.4; color: var(--color-text-dim); margin-bottom: 1rem;">
-              Кинь ссылку своим. Как только друг оплатит подписку, я молча накину тебе <b>+7 дней</b> за каждые его 200₽. Он тоже будет в плюсе — получит 7 дней VIP-триала вместо 5.
+              Поделитесь своей пригласительной ссылкой с друзьями: когда кто-то из них совершит первую оплату, мы начислим вам дополнительные 7 дней подписки за каждые 200 ₽ их заказа, а они получат 7 дней пробного периода вместо пяти.
             </p>
             <div style="display: flex; gap: 8px;">
               <input type="text" id="refLink" value="https://jointhevoid.ru/register?ref={{ user.id }}" readonly style="flex: 1; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 0 12px; border-radius: 8px; font-size: 0.85rem; outline: none;">

@@ -241,7 +241,7 @@ def register():
             """,
                 (full_name, password_hash, "/inst-landing", referrer_id),
             )
-            flash("Аккаунт создан. Заходи.", "success")
+            flash("Ваш аккаунт успешно создан. Пожалуйста, войдите в систему.", "success")
             return redirect(url_for("login"))
 
         flash(error, "error")
@@ -623,7 +623,7 @@ def anypay_webhook():
         if telegram_id:
             bot_token = os.environ.get("BOT_TOKEN")
             if bot_token:
-                msg = f"✅ <b>Доступ активирован.</b> Оплата прошла, добро пожаловать в нормальный интернет.\n\nТвоя ссылка на конфигурацию:\n`{sub_url}`\n\nМожешь найти её и в личном кабинете, если потеряешь."
+                msg = f"<b>Оплата успешно получена.</b> Ваш доступ к VPN активирован.\n\nКонфигурация для подключения:\n`{sub_url}`\n\nДанная ссылка также сохранена в вашем личном кабинете."
                 try:
                     requests.post(f"http://91.238.123.4:10080/bot{bot_token}/sendMessage", data={
                         "chat_id": telegram_id,
@@ -674,7 +674,7 @@ def anypay_webhook():
                         # Notify referrer
                         ref_tg_id = referrer["telegram_id"]
                         if ref_tg_id and bot_token:
-            ref_msg = f"🎉 <b>Твоя рефералка сработала!</b>\n\nТвой кент оплатил подписку, а я накинул тебе <b>+{bonus_days} дней</b> сверху.\n\nДоступ открыт до: {ref_exp_str}. Продолжай в том же духе."
+                            ref_msg = f"<b>Бонус успешно начислен.</b>\n\nПриглашенный вами пользователь совершил оплату. Вам начислено <b>{bonus_days} дней</b> доступа.\n\nВаша подписка активна до: {ref_exp_str}."
                             try:
                                 requests.post(f"http://91.238.123.4:10080/bot{bot_token}/sendMessage", data={
                                     "chat_id": ref_tg_id,
@@ -693,11 +693,11 @@ def anypay_webhook():
 def activate_trial():
     user = g.user
     if user["has_trial_used"]:
-        flash("Вы уже использовали пробный период.", "error")
+        flash("Пробный период уже использован.", "error")
         return redirect(url_for("dashboard"))
         
     if user["status"] == "active" or user["expires_at"]:
-        flash("У тебя уже есть подписка. Куда еще?", "error")
+        flash("У вас уже есть активная подписка.", "error")
         return redirect(url_for("dashboard"))
         
     # Give 7 days trial if user was referred, else 5 days
@@ -733,18 +733,18 @@ def activate_trial():
         if telegram_id:
             bot_token = os.environ.get("BOT_TOKEN")
             if bot_token:
-                msg = f"🎁 <b>VIP Триал активирован!</b>\n\nЯ дал тебе 5 дней безлимита на максималках, чтобы ты заценил скорость. Лови ссылку:\n`{sub_url}`\n\nНаслаждайся."
+                msg = f"<b>Пробный период активирован.</b>\n\nВам предоставлено 5 дней доступа.\nКонфигурация для подключения:\n`{sub_url}`"
                 try:
                     requests.post(f"http://91.238.123.4:10080/bot{bot_token}/sendMessage", data={
                         "chat_id": telegram_id,
                         "text": msg,
-                        "parse_mode": "Markdown"
+                        "parse_mode": "HTML"
                     }, timeout=5)
                 except Exception:
                     pass
-        flash("Бесплатный пробный период успешно активирован!", "success")
+        flash("Доступ активирован.", "success")
     else:
-        flash("Произошла ошибка при генерации ключа. Пожалуйста, обратитесь в поддержку.", "error")
+        flash("Ошибка генерации ключа. Обратитесь в поддержку.", "error")
         
     return redirect(url_for("dashboard"))
 
@@ -776,22 +776,22 @@ def set_password():
     password = request.form.get("password", "")
     
     if len(password) < 6:
-        flash("Пароль должен быть не короче 6 символов.", "error")
+        flash("Ваш пароль слишком короткий.", "error")
         return redirect(url_for("dashboard"))
         
     if not new_login or len(new_login) < 3:
-        flash("Логин должен быть не короче 3 символов.", "error")
+        flash("Ваш логин слишком короткий.", "error")
         return redirect(url_for("dashboard"))
         
     # Check if login is unique (excluding current user)
     existing = query_one("SELECT id FROM users WHERE lower(full_name) = lower(?) AND id != ?", (new_login, g.user["id"]))
     if existing:
-        flash("Этот логин уже занят другим пользователем. Пожалуйста, придумайте другой (например, добавьте цифры).", "error")
+        flash("Этот логин уже занят.", "error")
         return redirect(url_for("dashboard"))
 
     password_hash = generate_password_hash(password)
     execute("UPDATE users SET password_hash = ?, full_name = ? WHERE id = ?", (password_hash, new_login, g.user["id"]))
-    flash(f"Отлично! Теперь вы можете входить на сайт по логину «{new_login}» и вашему паролю.", "success")
+    flash("Данные обновлены.", "success")
     return redirect(url_for("dashboard"))
 
 
@@ -827,7 +827,7 @@ def admin_login():
         login_value = request.form.get("login", "").strip()
         password = request.form.get("password", "")
 
-        error = "Логин или пароль мимо."
+        error = "Вы ввели неверный логин или пароль."
 
         if not ADMIN_PASSWORD_HASH:
             flash(

@@ -2,11 +2,12 @@ import asyncio
 import logging
 import os
 import sqlite3
+import re
 from datetime import datetime, timedelta
 
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, FSInputFile
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import WebAppInfo
 from aiogram.client.session.aiohttp import AiohttpSession
@@ -70,12 +71,12 @@ def get_user_by_tg(telegram_id: int):
 
 def get_main_keyboard():
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text="📱 Личный кабинет", web_app=WebAppInfo(url="https://jointhevoid.ru/dashboard?v=2")))
-    builder.row(InlineKeyboardButton(text="🎁 Реферальная программа", callback_data="referral"))
-    builder.row(InlineKeyboardButton(text="💬 Написать в поддержку", callback_data="support"))
+    builder.row(InlineKeyboardButton(text="Личный кабинет", web_app=WebAppInfo(url="https://jointhevoid.ru/dashboard?v=2")))
+    builder.row(InlineKeyboardButton(text="Приглашение", callback_data="referral"))
+    builder.row(InlineKeyboardButton(text="Поддержка", callback_data="support"))
     return builder.as_markup()
 
-async def send_or_update_menu(chat_id: int, text: str, markup: InlineKeyboardMarkup):
+async def send_or_update_menu(chat_id: int, text: str, markup: InlineKeyboardMarkup, is_welcome: bool = False):
     """Deletes previous menu if it exists, and sends a new one."""
     if chat_id in user_menus:
         try:
@@ -83,7 +84,15 @@ async def send_or_update_menu(chat_id: int, text: str, markup: InlineKeyboardMar
         except Exception:
             pass # Message might be already deleted by user
             
-    msg = await bot.send_message(chat_id, text, parse_mode="HTML", reply_markup=markup)
+    if is_welcome:
+        img_path = os.path.join(os.path.dirname(__file__), "static", "img", "logo_square.jpg")
+        try:
+            msg = await bot.send_photo(chat_id, photo=FSInputFile(img_path), caption=text, parse_mode="HTML", reply_markup=markup)
+        except Exception:
+            msg = await bot.send_message(chat_id, text, parse_mode="HTML", reply_markup=markup)
+    else:
+        msg = await bot.send_message(chat_id, text, parse_mode="HTML", reply_markup=markup)
+        
     user_menus[chat_id] = msg.message_id
 
 @dp.message(CommandStart())
@@ -103,38 +112,39 @@ async def command_start_handler(message: types.Message) -> None:
         if success:
             await send_or_update_menu(
                 telegram_id,
-                f"✅ <b>Доступ подтвержден.</b> Твой Telegram привязан к элитному профилю Void VPN.\n\n"
-                f"Отныне все важные уведомления и премиум-поддержка будут приходить сюда.",
-                get_main_keyboard()
+                f"Ваш Telegram-аккаунт успешно синхронизирован с профилем Void VPN.\n\n"
+                f"Теперь вы будете получать здесь все уведомления и сможете напрямую обращаться в службу поддержки.",
+                get_main_keyboard(),
+                is_welcome=True
             )
         else:
             await send_or_update_menu(
                 telegram_id,
-                "❌ Ошибка авторизации. Ссылка устарела, либо кто-то уже занял это место.",
+                "К сожалению, ссылка для авторизации устарела или этот Telegram-аккаунт уже используется.",
                 get_main_keyboard()
             )
     else:
         user = get_user_by_tg(telegram_id)
         welcome_text = (
-            "🌌 <b>Void VPN. Исключительный доступ.</b>\n\n"
-            "Твоя приватная зона управления подпиской. Настройки, статистика и VIP-поддержка — всё здесь.\n\n"
+            "<b>Void VPN</b>\n\n"
+            "Добро пожаловать в панель управления, где вы можете управлять своей подпиской и получать оперативную помощь.\n\n"
         )
         if user:
             name, status, expires = user["full_name"], user["status"], user["expires_at"]
-            welcome_text += f"👤 <b>Пользователь:</b> {name}\n"
-            welcome_text += f"📊 <b>Статус:</b> {status}\n"
+            welcome_text += f"Пользователь: {name}\n"
+            welcome_text += f"Статус: {status}\n"
             if expires:
-                welcome_text += f"⏳ <b>Истекает:</b> {expires}\n"
+                welcome_text += f"Действует до: {expires}\n"
         else:
             welcome_text += (
-                "<i>Твой профиль пока не синхронизирован. Зайди в личный кабинет и нажми «Привязать Telegram», чтобы открыть полный функционал.</i>"
+                "<i>Ваш профиль пока не синхронизирован. Пожалуйста, привяжите Telegram в личном кабинете на сайте.</i>"
             )
             
-        await send_or_update_menu(telegram_id, welcome_text, get_main_keyboard())
+        await send_or_update_menu(telegram_id, welcome_text, get_main_keyboard(), is_welcome=True)
 
 @dp.callback_query(F.data == "support")
 async def support_callback(callback: types.CallbackQuery):
-    await callback.answer("Возникли вопросы? Пиши прямо сюда. Моя команда решит всё в лучшем виде.", show_alert=True)
+    await callback.answer("Вы можете написать свой вопрос прямо в этот чат, и мы вам поможем.", show_alert=True)
 
 @dp.callback_query(F.data == "referral")
 async def referral_callback(callback: types.CallbackQuery):
@@ -146,9 +156,10 @@ async def referral_callback(callback: types.CallbackQuery):
         
     ref_link = f"https://jointhevoid.ru/register?ref={user['id']}"
     msg = (
-        "🎁 <b>VIP Реферальная программа</b>\n\n"
-        "Скинь ссылку своим. Как только кто-то из них зайдет и оплатит подписку, я молча накину тебе <b>+7 дней</b> элитного доступа за каждые 200₽ его оплаты. Твой друг, кстати, тоже кайфанет — он получит 7 дней триала вместо 5.\n\n"
-        f"🔗 <b>Твой личный инвайт-линк:</b>\n`{ref_link}`"
+        "<b>Реферальная программа</b>\n\n"
+        "Вы можете поделиться своей персональной ссылкой с друзьями. При их первой оплате вы автоматически получите дополнительные 7 дней подписки за каждые 200 ₽ их заказа.\n\n"
+        "Ваш друг также получит расширенный семидневный пробный период.\n\n"
+        f"Ваша ссылка:\n`{ref_link}`"
     )
     
     # Check if this menu is already displaying referral text
@@ -179,15 +190,15 @@ async def handle_all_messages(message: types.Message) -> None:
             user_id = int(match.group(1))
             try:
                 if message.text:
-                    await bot.send_message(user_id, f"👨‍💻 <b>Служба поддержки:</b>\n\n{message.text}", parse_mode="HTML")
+                    await bot.send_message(user_id, f"<b>Служба поддержки:</b>\n\n{message.text}", parse_mode="HTML")
                 else:
                     original_caption = message.caption or ""
-                    new_caption = f"👨‍💻 <b>Служба поддержки:</b>\n\n{original_caption}"
+                    new_caption = f"<b>Служба поддержки:</b>\n\n{original_caption}"
                     if len(new_caption) > 1024:
                         new_caption = new_caption[:1020] + "..."
                     await message.copy_to(user_id, caption=new_caption, parse_mode="HTML")
             except Exception as e:
-                await message.answer(f"❌ Не удалось отправить ответ пользователю: {e}")
+                await message.answer(f"Ошибка отправки: {e}")
             return
             
     if message.from_user.id != admin_id:
@@ -196,16 +207,16 @@ async def handle_all_messages(message: types.Message) -> None:
         
         try:
             if message.text:
-                await bot.send_message(admin_id, f"💬 <b>Новое обращение:</b>\n\n{user_info}\n\n{message.text}", parse_mode="HTML")
+                await bot.send_message(admin_id, f"<b>Обращение:</b>\n\n{user_info}\n\n{message.text}", parse_mode="HTML")
             else:
                 original_caption = message.caption or ""
-                new_caption = f"💬 <b>Новое обращение:</b>\n{user_info}\n\n{original_caption}"
+                new_caption = f"<b>Обращение:</b>\n{user_info}\n\n{original_caption}"
                 if len(new_caption) > 1024:
                     new_caption = new_caption[:1020] + "..."
                 await message.copy_to(admin_id, caption=new_caption, parse_mode="HTML")
             
             # Send confirmation and delete user's message to keep chat clean
-            msg = await message.answer("✅ Принял. Запрос ушел инженерам. Жди ответа.")
+            msg = await message.answer("Ваше обращение передано в службу поддержки. Мы ответим вам в ближайшее время.")
             await asyncio.sleep(3)
             try:
                 await message.delete()
@@ -242,22 +253,34 @@ async def notification_worker():
                 
                 # Check 3 days
                 if 24 < hours_left <= 72 and not u["notified_3d"]:
-                    await bot.send_message(u["telegram_id"], "⚠️ Твой доступ к Void VPN истекает через 3 дня. Не тяни, продли подписку в личном кабинете.", reply_markup=get_main_keyboard())
+                    try:
+                        await bot.send_message(u["telegram_id"], "Обращаем ваше внимание, что срок действия вашей подписки истекает через 3 дня. Вы можете продлить ее в личном кабинете.", reply_markup=get_main_keyboard())
+                    except Exception:
+                        pass
                     cursor.execute("UPDATE users SET notified_3d = 1 WHERE id = ?", (u["id"],))
                     
                 # Check 1 day
                 elif 10 < hours_left <= 24 and not u["notified_1d"]:
-                    await bot.send_message(u["telegram_id"], "⏳ Твоя подписка сгорит уже завтра. Продлевай, пока не остался без качественного интернета.", reply_markup=get_main_keyboard())
+                    try:
+                        await bot.send_message(u["telegram_id"], "Напоминаем, что ваша подписка истекает уже завтра. Пожалуйста, продлите ее для сохранения доступа.", reply_markup=get_main_keyboard())
+                    except Exception:
+                        pass
                     cursor.execute("UPDATE users SET notified_1d = 1 WHERE id = ?", (u["id"],))
                     
                 # Check 10 hours
                 elif 1 < hours_left <= 10 and not u["notified_10h"]:
-                    await bot.send_message(u["telegram_id"], "❗️ Меньше 10 часов до отключения. Советую зайти и оплатить, чтобы потом не страдать от блокировок.", reply_markup=get_main_keyboard())
+                    try:
+                        await bot.send_message(u["telegram_id"], "Срок действия вашей подписки подходит к концу и истечет менее чем через 10 часов.", reply_markup=get_main_keyboard())
+                    except Exception:
+                        pass
                     cursor.execute("UPDATE users SET notified_10h = 1 WHERE id = ?", (u["id"],))
                     
                 # Check 1 hour
                 elif 0 < hours_left <= 1 and not u["notified_1h"]:
-                    await bot.send_message(u["telegram_id"], "🔴 ВНИМАНИЕ: Подписка истекает менее чем через час. Дальше — только серый и скучный интернет без VPN.", reply_markup=get_main_keyboard())
+                    try:
+                        await bot.send_message(u["telegram_id"], "Ваш доступ к VPN будет приостановлен менее чем через час, так как срок действия подписки завершается.", reply_markup=get_main_keyboard())
+                    except Exception:
+                        pass
                     cursor.execute("UPDATE users SET notified_1h = 1 WHERE id = ?", (u["id"],))
 
             conn.commit()
