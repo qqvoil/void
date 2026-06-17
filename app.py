@@ -911,7 +911,7 @@ def admin_panel():
         
     query += " ORDER BY u.created_at DESC, u.id DESC"
     
-    users = query_all(query, params)
+    users = [dict(u) for u in query_all(query, params)]
     
     # Fetch active devices/online status from Remnawave
     api_key = os.environ.get("RW_API_KEY")
@@ -924,25 +924,30 @@ def admin_panel():
                 timeout=5
             )
             if resp.status_code == 200:
-                for ru in resp.json().get("response", []):
-                    username = ru.get("username")
-                    online_at = ru.get("userTraffic", {}).get("onlineAt")
-                    if online_at:
-                        # Check if online within last 5 minutes
-                        try:
-                            online_dt = datetime.fromisoformat(online_at.replace("Z", "+00:00"))
-                            if datetime.now(timezone.utc) - online_dt < timedelta(minutes=5):
-                                rw_users[username] = 1 # Consider as 1 active device/online
-                        except:
-                            pass
+                resp_data = resp.json()
+                users_list = resp_data.get("response", []) if isinstance(resp_data, dict) else (resp_data if isinstance(resp_data, list) else [])
+                for ru in users_list:
+                    if isinstance(ru, dict):
+                        username = ru.get("username")
+                        online_at = ru.get("userTraffic", {}).get("onlineAt")
+                        if online_at:
+                            # Check if online within last 5 minutes
+                            try:
+                                online_dt = datetime.fromisoformat(online_at.replace("Z", "+00:00"))
+                                if datetime.now(timezone.utc) - online_dt < timedelta(minutes=5):
+                                    rw_users[username] = 1 # Consider as 1 active device/online
+                            except:
+                                pass
         except Exception as e:
             logging.error(f"Error fetching remnawave users for admin: {e}")
             
     # Attach rw_users data
     for u in users:
+        tg_id = u.get("telegram_id")
+        user_id = u.get("id")
         # Construct remnawave username
-        rw_username = f"tg_{u.telegram_id}" if u.telegram_id else f"void_{u.id}"
-        u.active_devices = rw_users.get(rw_username, 0)
+        rw_username = f"tg_{tg_id}" if tg_id else f"void_{user_id}"
+        u["active_devices"] = rw_users.get(rw_username, 0)
 
     return render_template("admin_panel.html", users=users)
 
