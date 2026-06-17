@@ -85,7 +85,7 @@ async def send_or_update_menu(chat_id: int, text: str, markup: InlineKeyboardMar
             pass # Message might be already deleted by user
             
     if is_welcome:
-        img_path = os.path.join(os.path.dirname(__file__), "static", "img", "logo_comp.png")
+        img_path = os.path.join(os.path.dirname(__file__), "static", "img", "fill_comp.png")
         try:
             msg = await bot.send_photo(chat_id, photo=FSInputFile(img_path), caption=text, parse_mode="HTML", reply_markup=markup)
         except Exception as e:
