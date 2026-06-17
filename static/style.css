@@ -375,7 +375,7 @@ button, input, select, textarea {
   margin: 0;
   max-width: 780px;
   font-family: "Cormorant Garamond", serif;
-  font-size: clamp(1.5rem, 2.05vw, 2.15rem);
+  font-size: clamp(2.2rem, 3.5vw, 3.2rem);
   line-height: 1.08;
   letter-spacing: 0.015em;
   color: rgba(255, 255, 255, 0.82);
@@ -2057,7 +2057,7 @@ button, input, select, textarea {
   /* Главная и лендинг */
   .content-shell, .entry-shell, .entry-footer { width: calc(100% - 32px); }
   .hero-logo { width: min(94vw, 760px); margin-bottom: 18px; }
-  .hero-tagline { max-width: 92vw; font-size: clamp(1.15rem, 5.2vw, 1.55rem); line-height: 1.08; }
+  .hero-tagline { max-width: 92vw; font-size: clamp(1.8rem, 6.5vw, 2.4rem); line-height: 1.08; }
   .hero-button { margin-top: 30px; }
   .hero-button--icon { width: 60px; min-width: 60px; height: 60px; }
   .section-title { font-size: clamp(2.2rem, 8vw, 3.4rem); }
