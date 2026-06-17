@@ -773,9 +773,10 @@ button, input, select, textarea {
   top: -12px;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--accent-soft);
+  background: #0a0a0a;
   color: var(--accent);
   border: 1px solid var(--accent-border);
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.15);
   margin-bottom: 0;
   z-index: 2;
 }
