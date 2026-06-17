@@ -11,8 +11,13 @@
   <h2>Рассылка новостей</h2>
   <form method="post" action="{{ url_for('admin_broadcast') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    
+    <label>URL картинки (опционально)</label>
+    <input type="url" name="photo_url" placeholder="https://example.com/image.jpg">
+    
     <label>Текст сообщения (поддерживает HTML)</label>
-    <textarea name="text" rows="4" required placeholder="Введите текст рассылки..."></textarea>
+    <textarea name="text" rows="4" placeholder="Введите текст рассылки..."></textarea>
+    
     <div class="actions">
       <button type="submit" onclick="return confirm('Отправить рассылку всем пользователям с Telegram?')">Отправить рассылку</button>
     </div>

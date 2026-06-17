@@ -857,7 +857,9 @@ def admin_broadcast():
         return jsonify({"success": False, "error": "Unauthorized"}), 401
     
     text = request.form.get("text", "").strip()
-    if not text:
+    photo_url = request.form.get("photo_url", "").strip()
+    
+    if not text and not photo_url:
         return jsonify({"success": False, "error": "Empty message"}), 400
         
     bot_token = os.environ.get("BOT_TOKEN") or os.environ.get("TG_BOT_TOKEN")
@@ -871,9 +873,16 @@ def admin_broadcast():
     for u in users:
         tg_id = u["telegram_id"]
         try:
+            if photo_url:
+                payload = {"chat_id": tg_id, "photo": photo_url, "caption": text, "parse_mode": "HTML"}
+                endpoint = "sendPhoto"
+            else:
+                payload = {"chat_id": tg_id, "text": text, "parse_mode": "HTML"}
+                endpoint = "sendMessage"
+                
             resp = requests.post(
-                f"http://91.238.123.4:10080/bot{bot_token}/sendMessage",
-                json={"chat_id": tg_id, "text": text, "parse_mode": "HTML"},
+                f"http://91.238.123.4:10080/bot{bot_token}/{endpoint}",
+                json=payload,
                 timeout=5
             )
             if resp.status_code == 200:
@@ -928,14 +937,14 @@ def admin_panel():
                 users_list = resp_data.get("response", []) if isinstance(resp_data, dict) else (resp_data if isinstance(resp_data, list) else [])
                 for ru in users_list:
                     if isinstance(ru, dict):
-                        username = ru.get("username")
+                        sub_url = ru.get("subscriptionUrl")
                         online_at = ru.get("userTraffic", {}).get("onlineAt")
-                        if online_at:
+                        if sub_url and online_at:
                             # Check if online within last 5 minutes
                             try:
                                 online_dt = datetime.fromisoformat(online_at.replace("Z", "+00:00"))
                                 if datetime.now(timezone.utc) - online_dt < timedelta(minutes=5):
-                                    rw_users[username] = 1 # Consider as 1 active device/online
+                                    rw_users[sub_url] = 1 # Consider as 1 active device/online
                             except:
                                 pass
         except Exception as e:
@@ -943,11 +952,8 @@ def admin_panel():
             
     # Attach rw_users data
     for u in users:
-        tg_id = u.get("telegram_id")
-        user_id = u.get("id")
-        # Construct remnawave username
-        rw_username = f"tg_{tg_id}" if tg_id else f"void_{user_id}"
-        u["active_devices"] = rw_users.get(rw_username, 0)
+        sub_url = u.get("subscription_url")
+        u["active_devices"] = rw_users.get(sub_url, 0)
 
     return render_template("admin_panel.html", users=users)
 
