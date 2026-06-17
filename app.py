@@ -622,7 +622,7 @@ def anypay_webhook():
                 msg += "\nСсылка на конфигурацию также доступна в личном кабинете на сайте."
                 
                 try:
-                    requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", data={
+                    requests.post(f"http://91.238.123.4:10080/bot{bot_token}/sendMessage", data={
                         "chat_id": telegram_id,
                         "text": msg
                     }, timeout=5)
@@ -676,7 +676,7 @@ def activate_trial():
             if bot_token:
                 msg = f"🎁 Пробный период на 5 дней активирован!\n\nВот ваша ссылка на подключение:\n`{sub_url}`\n\nПриятного пользования!"
                 try:
-                    requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", data={
+                    requests.post(f"http://91.238.123.4:10080/bot{bot_token}/sendMessage", data={
                         "chat_id": telegram_id,
                         "text": msg,
                         "parse_mode": "Markdown"
@@ -811,7 +811,7 @@ def admin_broadcast():
         tg_id = u["telegram_id"]
         try:
             resp = requests.post(
-                f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                f"http://91.238.123.4:10080/bot{bot_token}/sendMessage",
                 json={"chat_id": tg_id, "text": text, "parse_mode": "HTML"},
                 timeout=5
             )
