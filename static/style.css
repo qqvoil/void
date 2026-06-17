@@ -703,6 +703,13 @@ button, input, select, textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background: rgba(8, 8, 8, 0.45);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 10px 24px;
+  border-radius: 99px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
 }
 
 .dash-topbar__brand {
@@ -1001,6 +1008,8 @@ button, input, select, textarea {
   color: rgba(245, 241, 238, 0.92);
   font-size: 0.95rem;
   line-height: 1.65;
+  word-break: break-all;
+  overflow-wrap: break-word;
 }
 
 .dash-subscription-empty {
@@ -1048,7 +1057,8 @@ button, input, select, textarea {
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 16px;
 }
 
 .dash-side-card { align-self: stretch; }
@@ -1059,6 +1069,7 @@ button, input, select, textarea {
   justify-content: flex-end;
   gap: 14px;
   min-height: 130px;
+  margin-top: auto;
 }
 
 .dash-side-ticker {
