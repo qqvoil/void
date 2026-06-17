@@ -708,6 +708,8 @@ button, input, select, textarea {
     rgba(8, 8, 8, 0.5);
   backdrop-filter: blur(12px);
   text-align: center;
+  display: flex;
+  flex-direction: column;
   transition:
     transform 600ms cubic-bezier(0.22, 1, 0.36, 1),
     border-color 600ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -824,6 +826,7 @@ button, input, select, textarea {
   text-decoration: none;
   transition: all 600ms cubic-bezier(0.22, 1, 0.36, 1);
   cursor: pointer;
+  margin-top: auto;
 }
 .pricing-card__btn:hover {
   background: #f1f1f1;
