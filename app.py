@@ -1,6 +1,8 @@
 import os
 import sqlite3
-from datetime import datetime, timedelta
+import random
+import string
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 import requests
 import json
@@ -892,13 +894,56 @@ def admin_logout():
 @app.route("/admin")
 @admin_required
 def admin_panel():
-    users = query_all(
-        """
-        SELECT id, full_name, status, subscription_url, instructions_url, expires_at, created_at
-        FROM users
-        ORDER BY created_at DESC, id DESC
-        """
-    )
+    q = request.args.get('q', '').strip()
+    
+    query = """
+        SELECT 
+            u.id, u.full_name, u.status, u.subscription_url, u.instructions_url, 
+            u.expires_at, u.created_at, u.is_legacy, u.telegram_id, u.referrer_id,
+            (SELECT COUNT(*) FROM users r WHERE r.referrer_id = u.id) as ref_count,
+            (SELECT COUNT(*) FROM users r WHERE r.referrer_id = u.id AND r.has_brought_referral_bonus = 1) * 7 as ref_bonus_days
+        FROM users u
+    """
+    params = []
+    if q:
+        query += " WHERE u.full_name LIKE ? OR u.telegram_id LIKE ? OR u.id = ?"
+        params.extend([f"%{q}%", f"%{q}%", q])
+        
+    query += " ORDER BY u.created_at DESC, u.id DESC"
+    
+    users = query_all(query, params)
+    
+    # Fetch active devices/online status from Remnawave
+    api_key = os.environ.get("RW_API_KEY")
+    rw_users = {}
+    if api_key:
+        try:
+            resp = requests.get(
+                "https://panel.jointhevoid.ru/api/users",
+                headers={"Authorization": f"Bearer {api_key}"},
+                timeout=5
+            )
+            if resp.status_code == 200:
+                for ru in resp.json().get("response", []):
+                    username = ru.get("username")
+                    online_at = ru.get("userTraffic", {}).get("onlineAt")
+                    if online_at:
+                        # Check if online within last 5 minutes
+                        try:
+                            online_dt = datetime.fromisoformat(online_at.replace("Z", "+00:00"))
+                            if datetime.now(timezone.utc) - online_dt < timedelta(minutes=5):
+                                rw_users[username] = 1 # Consider as 1 active device/online
+                        except:
+                            pass
+        except Exception as e:
+            logging.error(f"Error fetching remnawave users for admin: {e}")
+            
+    # Attach rw_users data
+    for u in users:
+        # Construct remnawave username
+        rw_username = f"tg_{u.telegram_id}" if u.telegram_id else f"void_{u.id}"
+        u.active_devices = rw_users.get(rw_username, 0)
+
     return render_template("admin_panel.html", users=users)
 
 

@@ -19,19 +19,43 @@
   </form>
 </div>
 
+<div class="card">
+  <h2>Поиск пользователей</h2>
+  <form method="get" action="{{ url_for('admin_panel') }}" style="display: flex; gap: 10px;">
+    <input type="text" name="q" value="{{ request.args.get('q', '') }}" placeholder="Поиск по ID, Telegram ID или имени..." style="flex: 1;">
+    <button type="submit" style="width: auto;">Найти</button>
+    {% if request.args.get('q') %}
+      <a href="{{ url_for('admin_panel') }}" class="btn" style="text-decoration: none; padding: 10px 15px; border-radius: 8px; background: rgba(255, 255, 255, 0.1); color: #fff;">Сбросить</a>
+    {% endif %}
+  </form>
+</div>
+
 {% for user in users %}
 <div class="card">
   <form method="post" action="{{ url_for('admin_update_user', user_id=user.id) }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-    <p><strong>ID:</strong> {{ user.id }}</p>
-    {% if user.is_legacy %}
-      <p style="color: #ff6b6b; font-weight: bold; font-size: 0.8rem; margin-top: -10px; margin-bottom: 5px;">[Legacy Аккаунт]</p>
-    {% endif %}
-    {% if user.telegram_id %}
-      <p style="color: #4CAF50; font-size: 0.8rem; margin-top: -5px; margin-bottom: 10px;">[Telegram привязан]</p>
-    {% else %}
-      <p style="color: #fca311; font-size: 0.8rem; margin-top: -5px; margin-bottom: 10px;">[Telegram НЕ привязан]</p>
-    {% endif %}
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+      <div>
+        <p style="margin: 0;"><strong>ID:</strong> {{ user.id }}</p>
+        {% if user.is_legacy %}
+          <p style="color: #ff6b6b; font-weight: bold; font-size: 0.8rem; margin: 5px 0 0 0;">[Legacy Аккаунт]</p>
+        {% endif %}
+        {% if user.telegram_id %}
+          <p style="color: #4CAF50; font-size: 0.8rem; margin: 5px 0 0 0;">[Telegram привязан: {{ user.telegram_id }}]</p>
+        {% else %}
+          <p style="color: #fca311; font-size: 0.8rem; margin: 5px 0 0 0;">[Telegram НЕ привязан]</p>
+        {% endif %}
+      </div>
+      <div style="background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 8px; font-size: 0.85rem; border: 1px solid rgba(255,255,255,0.1);">
+        <h4 style="margin: 0 0 5px 0; color: #fff;">Статистика</h4>
+        <p style="margin: 3px 0; color: #aaa;">Онлайн: <strong style="color: #4CAF50;">{{ user.active_devices if user.active_devices is not none else '?' }} устройств(а)</strong></p>
+        <p style="margin: 3px 0; color: #aaa;">Пригласил: <strong style="color: #fff;">{{ user.ref_count }} чел.</strong></p>
+        <p style="margin: 3px 0; color: #aaa;">Бонусов получено: <strong style="color: #fff;">{{ user.ref_bonus_days }} дн.</strong></p>
+        {% if user.referrer_id %}
+          <p style="margin: 3px 0; color: #aaa;">Его пригласил: <strong style="color: #fff;">ID {{ user.referrer_id }}</strong></p>
+        {% endif %}
+      </div>
+    </div>
     <label>Логин</label>
     <input type="text" name="full_name" value="{{ user.full_name }}" required>
 
