@@ -486,8 +486,8 @@ def remnawave_create_or_extend_user(username, expire_date_str):
         "Content-Type": "application/json"
     }
     
-    # expire_date_str is YYYY-MM-DD
-    expire_dt = datetime.strptime(expire_date_str, "%Y-%m-%d")
+    # expire_date_str is YYYY-MM-DD HH:MM:SS
+    expire_dt = datetime.strptime(expire_date_str, "%Y-%m-%d %H:%M:%S")
     # Remnawave expects ISO 8601 with Z
     expire_iso = expire_dt.strftime("%Y-%m-%dT%H:%M:%S.000Z")
     
@@ -575,7 +575,7 @@ def anypay_webhook():
         
         if user["expires_at"]:
             try:
-                current_expires = datetime.strptime(user["expires_at"], "%Y-%m-%d")
+                current_expires = datetime.strptime(user["expires_at"], "%Y-%m-%d %H:%M:%S")
                 if current_expires > now:
                     new_expires = current_expires + timedelta(days=days_to_add)
                 else:
@@ -585,7 +585,7 @@ def anypay_webhook():
         else:
             new_expires = now + timedelta(days=days_to_add)
             
-        expires_str = new_expires.strftime("%Y-%m-%d")
+        expires_str = new_expires.strftime("%Y-%m-%d %H:%M:%S")
         
         # Integrate with Remnawave
         # Transliterate cyrillic to latin and sanitize
@@ -608,9 +608,9 @@ def anypay_webhook():
         sub_url = remnawave_create_or_extend_user(rw_username, expires_str)
         
         if sub_url:
-            execute("UPDATE users SET status = 'active', expires_at = ?, subscription_url = ? WHERE id = ?", (expires_str, sub_url, user_id))
+            execute("UPDATE users SET status = 'active', expires_at = ?, subscription_url = ?, notified_3d=0, notified_1d=0, notified_10h=0, notified_1h=0 WHERE id = ?", (expires_str, sub_url, user_id))
         else:
-            execute("UPDATE users SET status = 'active', expires_at = ? WHERE id = ?", (expires_str, user_id))
+            execute("UPDATE users SET status = 'active', expires_at = ?, notified_3d=0, notified_1d=0, notified_10h=0, notified_1h=0 WHERE id = ?", (expires_str, user_id))
         
         telegram_id = user["telegram_id"]
         if telegram_id:
@@ -645,7 +645,7 @@ def activate_trial():
         
     now = datetime.now()
     new_expires = now + timedelta(days=5)
-    expires_str = new_expires.strftime("%Y-%m-%d")
+    expires_str = new_expires.strftime("%Y-%m-%d %H:%M:%S")
     
     # Transliterate cyrillic to latin and sanitize
     cyrillic_translit = {
@@ -667,7 +667,7 @@ def activate_trial():
     sub_url = remnawave_create_or_extend_user(rw_username, expires_str)
     
     if sub_url:
-        execute("UPDATE users SET status = 'active', expires_at = ?, subscription_url = ?, has_trial_used = 1 WHERE id = ?", 
+        execute("UPDATE users SET status = 'active', expires_at = ?, subscription_url = ?, has_trial_used = 1, notified_3d=0, notified_1d=0, notified_10h=0, notified_1h=0 WHERE id = ?", 
                (expires_str, sub_url, user["id"]))
                
         telegram_id = user["telegram_id"]
@@ -789,6 +789,40 @@ def admin_login():
 
     return render_template("admin_login.html")
 
+
+@app.route("/admin/broadcast", methods=["POST"])
+def admin_broadcast():
+    if "admin_logged_in" not in session:
+        return jsonify({"success": False, "error": "Unauthorized"}), 401
+    
+    text = request.form.get("text", "").strip()
+    if not text:
+        return jsonify({"success": False, "error": "Empty message"}), 400
+        
+    bot_token = os.environ.get("BOT_TOKEN") or os.environ.get("TG_BOT_TOKEN")
+    if not bot_token:
+        return jsonify({"success": False, "error": "Bot token not configured"}), 500
+        
+    users = execute("SELECT telegram_id FROM users WHERE telegram_id IS NOT NULL", fetchall=True)
+    
+    success_count = 0
+    import time
+    for u in users:
+        tg_id = u["telegram_id"]
+        try:
+            resp = requests.post(
+                f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                json={"chat_id": tg_id, "text": text, "parse_mode": "HTML"},
+                timeout=5
+            )
+            if resp.status_code == 200:
+                success_count += 1
+            time.sleep(0.05) # Prevent rate limiting
+        except Exception as e:
+            print(f"Failed to send broadcast to {tg_id}: {e}")
+            
+    flash(f"Рассылка успешно отправлена {success_count} пользователям", "success")
+    return redirect(url_for("admin_panel"))
 
 @app.route("/admin/logout")
 def admin_logout():

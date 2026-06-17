@@ -7,6 +7,18 @@
   <p><a href="{{ url_for('admin_logout') }}">Выйти из админки</a></p>
 </div>
 
+<div class="card">
+  <h2>Рассылка новостей</h2>
+  <form method="post" action="{{ url_for('admin_broadcast') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <label>Текст сообщения (поддерживает HTML)</label>
+    <textarea name="text" rows="4" required placeholder="Введите текст рассылки..."></textarea>
+    <div class="actions">
+      <button type="submit" onclick="return confirm('Отправить рассылку всем пользователям с Telegram?')">Отправить рассылку</button>
+    </div>
+  </form>
+</div>
+
 {% for user in users %}
 <div class="card">
   <form method="post" action="{{ url_for('admin_update_user', user_id=user.id) }}">
