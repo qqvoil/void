@@ -870,7 +870,7 @@ def admin_broadcast():
         tg_id = u["telegram_id"]
         try:
             if attach_image:
-                with open("/opt/void/static/img/fill_tiny.jpg", "rb") as f:
+                with open("/opt/void/static/img/fill_bot.jpg", "rb") as f:
                     resp = requests.post(
                         f"http://91.238.123.4:10080/bot{bot_token}/sendPhoto",
                         data={"chat_id": tg_id, "caption": text, "parse_mode": "HTML"},
