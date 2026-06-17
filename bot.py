@@ -88,7 +88,8 @@ async def send_or_update_menu(chat_id: int, text: str, markup: InlineKeyboardMar
         img_path = os.path.join(os.path.dirname(__file__), "static", "img", "logo_square.jpg")
         try:
             msg = await bot.send_photo(chat_id, photo=FSInputFile(img_path), caption=text, parse_mode="HTML", reply_markup=markup)
-        except Exception:
+        except Exception as e:
+            logging.error(f"Failed to send photo: {e}")
             msg = await bot.send_message(chat_id, text, parse_mode="HTML", reply_markup=markup)
     else:
         msg = await bot.send_message(chat_id, text, parse_mode="HTML", reply_markup=markup)
