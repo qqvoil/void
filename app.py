@@ -857,9 +857,9 @@ def admin_broadcast():
         return jsonify({"success": False, "error": "Unauthorized"}), 401
     
     text = request.form.get("text", "").strip()
-    photo_url = request.form.get("photo_url", "").strip()
+    attach_image = request.form.get("attach_image") == "1"
     
-    if not text and not photo_url:
+    if not text and not attach_image:
         return jsonify({"success": False, "error": "Empty message"}), 400
         
     bot_token = os.environ.get("BOT_TOKEN") or os.environ.get("TG_BOT_TOKEN")
@@ -873,8 +873,8 @@ def admin_broadcast():
     for u in users:
         tg_id = u["telegram_id"]
         try:
-            if photo_url:
-                payload = {"chat_id": tg_id, "photo": photo_url, "caption": text, "parse_mode": "HTML"}
+            if attach_image:
+                payload = {"chat_id": tg_id, "photo": "https://jointhevoid.ru/static/img/fill_comp.png", "caption": text, "parse_mode": "HTML"}
                 endpoint = "sendPhoto"
             else:
                 payload = {"chat_id": tg_id, "text": text, "parse_mode": "HTML"}
@@ -933,8 +933,14 @@ def admin_panel():
                 timeout=5
             )
             if resp.status_code == 200:
-                resp_data = resp.json()
-                users_list = resp_data.get("response", []) if isinstance(resp_data, dict) else (resp_data if isinstance(resp_data, list) else [])
+                resp_data = resp.json().get("response", {})
+                if isinstance(resp_data, dict):
+                    users_list = resp_data.get("users", [])
+                elif isinstance(resp_data, list):
+                    users_list = resp_data
+                else:
+                    users_list = []
+                    
                 for ru in users_list:
                     if isinstance(ru, dict):
                         sub_url = ru.get("subscriptionUrl")

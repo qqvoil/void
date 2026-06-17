@@ -12,8 +12,10 @@
   <form method="post" action="{{ url_for('admin_broadcast') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     
-    <label>URL картинки (опционально)</label>
-    <input type="url" name="photo_url" placeholder="https://example.com/image.jpg">
+    <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; cursor: pointer;">
+      <input type="checkbox" name="attach_image" value="1" style="width: auto; margin: 0;">
+      Прикрепить фирменную картинку (логотип) к сообщению
+    </label>
     
     <label>Текст сообщения (поддерживает HTML)</label>
     <textarea name="text" rows="4" placeholder="Введите текст рассылки..."></textarea>
