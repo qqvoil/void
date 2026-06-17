@@ -852,19 +852,15 @@ def admin_login():
 
 
 @app.route("/admin/broadcast", methods=["POST"])
+@admin_required
 def admin_broadcast():
-    if "admin_logged_in" not in session:
-        return jsonify({"success": False, "error": "Unauthorized"}), 401
-    
     text = request.form.get("text", "").strip()
     attach_image = request.form.get("attach_image") == "1"
     
-    if not text and not attach_image:
-        return jsonify({"success": False, "error": "Empty message"}), 400
-        
     bot_token = os.environ.get("BOT_TOKEN") or os.environ.get("TG_BOT_TOKEN")
     if not bot_token:
-        return jsonify({"success": False, "error": "Bot token not configured"}), 500
+        flash("Bot token not configured", "danger")
+        return redirect(url_for("admin_panel"))
         
     users = execute("SELECT telegram_id FROM users WHERE telegram_id IS NOT NULL", fetchall=True)
     
