@@ -16,6 +16,8 @@ CREATE TABLE users (
     notified_1d BOOLEAN DEFAULT 0,
     notified_10h BOOLEAN DEFAULT 0,
     notified_1h BOOLEAN DEFAULT 0,
+    referrer_id INTEGER DEFAULT NULL,
+    has_brought_referral_bonus BOOLEAN DEFAULT 0,
     is_legacy BOOLEAN DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

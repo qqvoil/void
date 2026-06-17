@@ -60,14 +60,18 @@ def link_account(token: str, telegram_id: int) -> bool:
 def get_user_by_tg(telegram_id: int):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT full_name, status, expires_at FROM users WHERE telegram_id = ?", (telegram_id,))
+    cursor.execute("SELECT id, full_name, status, expires_at FROM users WHERE telegram_id = ?", (telegram_id,))
     user = cursor.fetchone()
     conn.close()
-    return user
+    if user:
+        # Return as dict for easier access
+        return {"id": user[0], "full_name": user[1], "status": user[2], "expires_at": user[3]}
+    return None
 
 def get_main_keyboard():
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="📱 Личный кабинет", web_app=WebAppInfo(url="https://jointhevoid.ru/dashboard?v=2")))
+    builder.row(InlineKeyboardButton(text="🎁 Реферальная программа", callback_data="referral"))
     builder.row(InlineKeyboardButton(text="💬 Написать в поддержку", callback_data="support"))
     return builder.as_markup()
 
@@ -116,7 +120,7 @@ async def command_start_handler(message: types.Message) -> None:
             "Здесь ты можешь управлять своей подпиской, быстро заходить в личный кабинет и обращаться в службу поддержки.\n\n"
         )
         if user:
-            name, status, expires = user
+            name, status, expires = user["full_name"], user["status"], user["expires_at"]
             welcome_text += f"👤 <b>Пользователь:</b> {name}\n"
             welcome_text += f"📊 <b>Статус:</b> {status}\n"
             if expires:
@@ -131,6 +135,30 @@ async def command_start_handler(message: types.Message) -> None:
 @dp.callback_query(F.data == "support")
 async def support_callback(callback: types.CallbackQuery):
     await callback.answer("Просто напиши свой вопрос прямо в этот чат, и наша поддержка тебе ответит!", show_alert=True)
+
+@dp.callback_query(F.data == "referral")
+async def referral_callback(callback: types.CallbackQuery):
+    telegram_id = callback.from_user.id
+    user = get_user_by_tg(telegram_id)
+    if not user:
+        await callback.answer("Сначала привяжи аккаунт к Telegram!", show_alert=True)
+        return
+        
+    ref_link = f"https://jointhevoid.ru/register?ref={user['id']}"
+    msg = (
+        "🎁 <b>Реферальная программа</b>\n\n"
+        "Пригласи друга по своей ссылке и получи бонус!\n\n"
+        "Когда твой друг впервые оплатит подписку, ты автоматически получишь <b>+7 бесплатных дней</b>. А твой друг сразу получит 7 дней триала вместо 5.\n\n"
+        f"🔗 <b>Твоя ссылка:</b>\n`{ref_link}`"
+    )
+    
+    # Check if this menu is already displaying referral text
+    try:
+        await bot.edit_message_text(msg, chat_id=callback.message.chat.id, message_id=callback.message.message_id, parse_mode="HTML", reply_markup=get_main_keyboard())
+    except Exception:
+        # Message hasn't changed
+        pass
+    await callback.answer()
 
 import re
 

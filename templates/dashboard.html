@@ -248,6 +248,37 @@
         </aside>
         {% endif %}
 
+        <aside class="dash-card dash-side-card" style="margin-top: 1rem; border-color: rgba(255, 107, 107, 0.15); box-shadow: 0 8px 32px rgba(255, 107, 107, 0.05);">
+          <span class="dash-card__kicker" style="color: #ff6b6b;">Бонусы</span>
+          <h2 class="dash-card__title">7 дней за друга</h2>
+          <div class="dash-meta">
+            <p style="font-size: 0.85rem; line-height: 1.4; color: var(--color-text-dim); margin-bottom: 1rem;">
+              Пригласи друга по своей ссылке. Когда он впервые оплатит подписку, ты получишь <b>+7 бесплатных дней</b>! А твой друг сразу получит 7 дней триала вместо 5.
+            </p>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="refLink" value="https://jointhevoid.ru/register?ref={{ user.id }}" readonly style="flex: 1; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 0 12px; border-radius: 8px; font-size: 0.85rem; outline: none;">
+              <button onclick="copyRefLink()" class="dash-btn" style="background: rgba(255, 107, 107, 0.1); border: 1px solid rgba(255, 107, 107, 0.3); color: #ff6b6b; padding: 0 16px; height: 38px;">
+                Копировать
+              </button>
+            </div>
+          </div>
+          <script>
+            function copyRefLink() {
+              var copyText = document.getElementById("refLink");
+              copyText.select();
+              copyText.setSelectionRange(0, 99999);
+              navigator.clipboard.writeText(copyText.value);
+              
+              var btn = event.target;
+              var oldText = btn.innerText;
+              btn.innerText = "Скопировано!";
+              setTimeout(function() {
+                btn.innerText = oldText;
+              }, 2000);
+            }
+          </script>
+        </aside>
+
         <div class="dash-side-bottom">
           <div class="dash-side-ticker" aria-hidden="true">
             <div class="dash-side-ticker__track">

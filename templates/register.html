@@ -253,7 +253,7 @@
         </p>
       </div>
 
-      <form method="post" class="reg-form">
+      <form method="post" action="{{ url_for('register', ref=request.args.get('ref', '')) }}" class="reg-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <div class="reg-field">
           <label class="reg-label" for="full_name">Логин</label>

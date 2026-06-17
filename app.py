@@ -225,14 +225,21 @@ def register():
         if existing_user:
             error = "Этот логин уже занят. Пожалуйста, придумайте другой."
 
+        referrer_id = None
+        ref = request.args.get("ref") or request.form.get("ref")
+        if ref and ref.isdigit():
+            referrer = query_one("SELECT id FROM users WHERE id = ?", (int(ref),))
+            if referrer:
+                referrer_id = int(ref)
+
         if error is None:
             password_hash = generate_password_hash(password)
             execute(
                 """
-                INSERT INTO users (full_name, password_hash, status, instructions_url)
-                VALUES (?, ?, 'new', ?)
+                INSERT INTO users (full_name, password_hash, status, instructions_url, referrer_id)
+                VALUES (?, ?, 'new', ?, ?)
             """,
-                (full_name, password_hash, "/inst-landing"),
+                (full_name, password_hash, "/inst-landing", referrer_id),
             )
             flash("Регистрация успешна. Теперь войдите в аккаунт.", "success")
             return redirect(url_for("login"))
@@ -629,6 +636,59 @@ def anypay_webhook():
                 except Exception:
                     pass
                 
+        # Referral Bonus Processing
+        if user["referrer_id"] and not user.get("has_brought_referral_bonus", 0):
+            referrer = query_one("SELECT * FROM users WHERE id = ?", (user["referrer_id"],))
+            if referrer:
+                try:
+                    bonus_days = (int(float(amount)) // 200) * 7
+                except (ValueError, TypeError):
+                    bonus_days = 7
+                    
+                if bonus_days > 0:
+                    ref_now = datetime.now()
+                    if referrer["expires_at"] and referrer["expires_at"] != 'Безлимит':
+                        try:
+                            ref_exp = datetime.strptime(referrer["expires_at"], "%Y-%m-%d %H:%M:%S")
+                            ref_new_exp = max(ref_exp, ref_now) + timedelta(days=bonus_days)
+                        except ValueError:
+                            ref_new_exp = ref_now + timedelta(days=bonus_days)
+                    elif referrer["expires_at"] == 'Безлимит':
+                        ref_new_exp = None # Don't update unlimited
+                    else:
+                        ref_new_exp = ref_now + timedelta(days=bonus_days)
+                        
+                    if ref_new_exp:
+                        ref_exp_str = ref_new_exp.strftime("%Y-%m-%d %H:%M:%S")
+                        
+                        ref_safe_name = referrer['full_name'].lower()
+                        for cyr, lat in cyrillic_translit.items():
+                            ref_safe_name = ref_safe_name.replace(cyr, lat)
+                        ref_safe_name = re.sub(r'[^a-zA-Z0-9-]', '-', ref_safe_name)
+                        ref_rw_username = f"User-{referrer['id']}-{ref_safe_name}"
+                        ref_rw_username = re.sub(r'-+', '-', ref_rw_username).strip('-')
+                        
+                        ref_sub_url = remnawave_create_or_extend_user(ref_rw_username, ref_exp_str)
+                        if ref_sub_url:
+                            execute("UPDATE users SET expires_at = ?, subscription_url = ?, notified_3d=0, notified_1d=0, notified_10h=0, notified_1h=0 WHERE id = ?", (ref_exp_str, ref_sub_url, referrer["id"]))
+                        else:
+                            execute("UPDATE users SET expires_at = ?, notified_3d=0, notified_1d=0, notified_10h=0, notified_1h=0 WHERE id = ?", (ref_exp_str, referrer["id"]))
+                            
+                        # Notify referrer
+                        ref_tg_id = referrer["telegram_id"]
+                        if ref_tg_id and bot_token:
+                            ref_msg = f"🎉 <b>Ура! Твой друг оплатил подписку.</b>\n\nТебе начислено <b>+{bonus_days} дней</b> к подписке в качестве бонуса по реферальной программе!\n\nНовая дата окончания: {ref_exp_str}"
+                            try:
+                                requests.post(f"http://91.238.123.4:10080/bot{bot_token}/sendMessage", data={
+                                    "chat_id": ref_tg_id,
+                                    "text": ref_msg,
+                                    "parse_mode": "HTML"
+                                }, timeout=5)
+                            except Exception:
+                                pass
+                                
+            execute("UPDATE users SET has_brought_referral_bonus = 1 WHERE id = ?", (user_id,))
+                
     return "OK", 200
 
 @app.route("/activate-trial", methods=["POST"])
@@ -643,8 +703,10 @@ def activate_trial():
         flash("У вас уже есть подписка.", "error")
         return redirect(url_for("dashboard"))
         
+    # Give 7 days trial if user was referred, else 5 days
+    days_to_add = 7 if user["referrer_id"] else 5
     now = datetime.now()
-    new_expires = now + timedelta(days=5)
+    new_expires = now + timedelta(days=days_to_add)
     expires_str = new_expires.strftime("%Y-%m-%d %H:%M:%S")
     
     # Transliterate cyrillic to latin and sanitize
