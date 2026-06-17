@@ -862,7 +862,7 @@ def admin_broadcast():
         flash("Bot token not configured", "danger")
         return redirect(url_for("admin_panel"))
         
-    users = execute("SELECT telegram_id FROM users WHERE telegram_id IS NOT NULL", fetchall=True)
+    users = query_all("SELECT telegram_id FROM users WHERE telegram_id IS NOT NULL")
     
     success_count = 0
     import time
