@@ -256,6 +256,7 @@ async function copyText(text) {
   const dashMenuTrigger = document.getElementById("dashMenuTrigger");
   const dashMenuOverlay = document.getElementById("dashMenuOverlay");
   const dashMenuLinks = document.querySelectorAll(".dash-menu-link");
+  const dashTopbar = document.querySelector(".dash-topbar");
 
   if (!dashMenu || !dashMenuTrigger || !dashMenuOverlay) {
     return;
@@ -267,6 +268,7 @@ async function copyText(text) {
     dashMenuTrigger.setAttribute("aria-expanded", "false");
     dashMenuOverlay.setAttribute("aria-hidden", "true");
     document.body.classList.remove("menu-open");
+    if (dashTopbar) dashTopbar.classList.remove("menu-open");
   };
 
   const openDashMenu = () => {
@@ -275,6 +277,7 @@ async function copyText(text) {
     dashMenuTrigger.setAttribute("aria-expanded", "true");
     dashMenuOverlay.setAttribute("aria-hidden", "false");
     document.body.classList.add("menu-open");
+    if (dashTopbar) dashTopbar.classList.add("menu-open");
   };
 
   dashMenuTrigger.addEventListener("click", (event) => {
