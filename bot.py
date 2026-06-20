@@ -216,14 +216,8 @@ async def handle_all_messages(message: types.Message) -> None:
                     new_caption = new_caption[:1020] + "..."
                 await message.copy_to(admin_id, caption=new_caption, parse_mode="HTML")
             
-            # Send confirmation and delete user's message to keep chat clean
-            msg = await message.answer("Ваше обращение передано в службу поддержки. Мы ответим вам в ближайшее время.")
-            await asyncio.sleep(3)
-            try:
-                await message.delete()
-                await msg.delete()
-            except Exception:
-                pass
+            # Send confirmation
+            await message.answer("Ваше обращение передано в службу поддержки. Мы ответим вам в ближайшее время.")
         except Exception as e:
             logging.error(f"Failed to forward message to admin: {e}")
 
