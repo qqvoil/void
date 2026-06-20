@@ -1409,7 +1409,7 @@ button, input, select, textarea {
   display: grid;
   grid-template-columns: minmax(0, 1.28fr) minmax(300px, 0.72fr);
   gap: 18px;
-  align-items: stretch;
+  align-items: start;
 }
 
 .dash-card {
