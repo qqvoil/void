@@ -74,6 +74,8 @@ def get_main_keyboard():
     builder.row(InlineKeyboardButton(text="Личный кабинет", web_app=WebAppInfo(url="https://jointhevoid.ru/dashboard?v=2")))
     builder.row(InlineKeyboardButton(text="Приглашение", callback_data="referral"))
     builder.row(InlineKeyboardButton(text="Поддержка", callback_data="support"))
+    builder.row(InlineKeyboardButton(text="Оферта", url="https://telegra.ph/Polzovatelskoe-soglashenie-04-01-19"),
+                InlineKeyboardButton(text="Конфиденциальность", url="https://telegra.ph/Politika-konfidencialnosti-04-01-26"))
     return builder.as_markup()
 
 async def send_or_update_menu(chat_id: int, text: str, markup: InlineKeyboardMarkup, is_welcome: bool = False):
