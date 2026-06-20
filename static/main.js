@@ -38,12 +38,24 @@ function easeOutQuint(t) {
 }
 
 function smoothScrollTo(element, duration = 1600) {
-  const start = window.pageYOffset;
-  const targetY = element.getBoundingClientRect().top + window.pageYOffset;
+  const start = window.scrollY;
+  const targetY = element.getBoundingClientRect().top + start;
   const distance = targetY - start;
   const startTime = performance.now();
+  let isCancelled = false;
+
+  const cancelScroll = () => { isCancelled = true; cleanup(); };
+  const cleanup = () => {
+    window.removeEventListener('wheel', cancelScroll);
+    window.removeEventListener('touchstart', cancelScroll);
+  };
+
+  window.addEventListener('wheel', cancelScroll, { passive: true });
+  window.addEventListener('touchstart', cancelScroll, { passive: true });
 
   function step(currentTime) {
+    if (isCancelled) return;
+    
     const elapsed = currentTime - startTime;
     const progress = Math.min(elapsed / duration, 1);
     const eased = easeInOutCubic(progress);
@@ -52,6 +64,8 @@ function smoothScrollTo(element, duration = 1600) {
 
     if (progress < 1) {
       requestAnimationFrame(step);
+    } else {
+      cleanup();
     }
   }
 
