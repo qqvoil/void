@@ -160,8 +160,6 @@ def terms():
 def index():
     if session.get("is_admin"):
         return redirect(url_for("admin_panel"))
-    if session.get("user_id"):
-        return redirect(url_for("dashboard"))
     return render_template("index.html")
 
 
@@ -202,6 +200,9 @@ def webapp():
 @app.route("/register", methods=["GET", "POST"])
 @limiter.limit("10 per hour")
 def register():
+    if session.get("user_id"):
+        return redirect(url_for("dashboard"))
+        
     if request.method == "POST":
         full_name = request.form.get("full_name", "").strip()
         password = request.form.get("password", "")
@@ -254,6 +255,9 @@ def register():
 @app.route("/login", methods=["GET", "POST"])
 @limiter.limit("5 per minute")
 def login():
+    if session.get("user_id"):
+        return redirect(url_for("dashboard"))
+        
     if request.method == "POST":
         full_name = request.form.get("full_name", "").strip()
         password = request.form.get("password", "")
