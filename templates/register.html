@@ -239,8 +239,8 @@
 </style>
 
 <div class="reg-page">
-  <div class="reg-topmark" aria-hidden="true">
-    <img src="{{ url_for('static', filename='img/minimal_comp.png') }}" alt="Void">
+  <div class="reg-topmark">
+    <a href="{{ url_for('index') }}"><img src="{{ url_for('static', filename='img/minimal_comp.png') }}" alt="Void"></a>
   </div>
 
   <div class="reg-shell">
@@ -297,7 +297,7 @@
       <div class="reg-bottom">
         <p>
           Уже есть аккаунт?
-          <a href="{{ url_for('login') }}" class="reg-link">Уже есть аккаунт? <strong>Войти</strong></a>
+          <a href="{{ url_for('login') }}" class="reg-link"><strong>Войти</strong></a>
         </p>
       </div>
       
