@@ -131,6 +131,11 @@ def render_instruction_page(template_name):
 
 @app.before_request
 def load_logged_in_user():
+    # Capture referral code from any page
+    ref = request.args.get("ref")
+    if ref and ref.isdigit():
+        session["ref"] = ref
+
     user_id = session.get("user_id")
     g.user = None
 
@@ -229,8 +234,8 @@ def register():
             error = "Этот логин уже занят. Пожалуйста, придумайте другой."
 
         referrer_id = None
-        ref = request.args.get("ref") or request.form.get("ref")
-        if ref and ref.isdigit():
+        ref = request.args.get("ref") or request.form.get("ref") or session.get("ref")
+        if ref and str(ref).isdigit():
             referrer = query_one("SELECT id FROM users WHERE id = ?", (int(ref),))
             if referrer:
                 referrer_id = int(ref)
