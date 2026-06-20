@@ -17,6 +17,7 @@ from flask import (
     request,
     session,
     url_for,
+    send_from_directory,
 )
 from werkzeug.security import check_password_hash, generate_password_hash
 from flask_wtf.csrf import CSRFProtect
@@ -160,6 +161,10 @@ def anypay_verification():
 def terms():
     return render_template("terms.html")
 
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static', 'img'),
+                               'favicon.jpg', mimetype='image/jpeg')
 
 @app.route("/")
 def index():
