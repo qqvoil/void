@@ -112,6 +112,7 @@
     </section>
 
     <section class="dash-grid">
+      <div class="dash-side-stack">
       <div class="dash-card">
         {% if raw_status == 'active' %}
           <span class="dash-card__kicker">Main Access</span>
@@ -217,6 +218,21 @@
         {% endif %}
       </div>
 
+      <div class="dash-side-bottom">
+        <div class="dash-side-ticker" aria-hidden="true">
+          <div class="dash-side-ticker__track">
+            <span>enterthevoid</span>
+            <span>enterthevoid</span>
+            <span>enterthevoid</span>
+            <span>enterthevoid</span>
+            <span>enterthevoid</span>
+            <span>enterthevoid</span>
+          </div>
+        </div>
+        <div class="dash-side-line" aria-hidden="true"></div>
+      </div>
+      </div>
+
       <div class="dash-side-stack">
         <aside class="dash-card dash-side-card">
           <span class="dash-card__kicker">Profile</span>
@@ -281,52 +297,37 @@
           </script>
         </aside>
 
-        <div class="dash-side-bottom">
-          <div class="dash-side-ticker" aria-hidden="true">
-            <div class="dash-side-ticker__track">
-              <span>enterthevoid</span>
-              <span>enterthevoid</span>
-              <span>enterthevoid</span>
-              <span>enterthevoid</span>
-              <span>enterthevoid</span>
-              <span>enterthevoid</span>
-            </div>
-          </div>
-          <script>
-            document.addEventListener("DOMContentLoaded", function() {
-              const dashCardText = document.querySelectorAll('.dash-card__text');
-              dashCardText.forEach((el, index) => {
-                setTimeout(() => {
-                  el.style.opacity = '1';
-                  el.style.transform = 'translateY(0)';
-                }, 300 + (index * 100));
-              });
-              
-              // Автоматическая привязка Telegram-аккаунта в Mini App
-              {% if not user.telegram_id %}
-              if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
-                  fetch('/auth/webapp', {
-                      method: 'POST',
-                      headers: {
-                          'Content-Type': 'application/json'
-                      },
-                      body: JSON.stringify({ initData: window.Telegram.WebApp.initData })
-                  })
-                  .then(res => res.json())
-                  .then(data => {
-                      if (data.success && data.linked) {
-                          // Reload to hide the 'Link Telegram' button since it's now linked
-                          window.location.reload();
-                      }
-                  })
-                  .catch(console.error);
-              }
-              {% endif %}
+        <script>
+          document.addEventListener("DOMContentLoaded", function() {
+            const dashCardText = document.querySelectorAll('.dash-card__text');
+            dashCardText.forEach((el, index) => {
+              setTimeout(() => {
+                el.style.opacity = '1';
+                el.style.transform = 'translateY(0)';
+              }, 300 + (index * 100));
             });
-          </script>
-
-          <div class="dash-side-line" aria-hidden="true"></div>
-        </div>
+            
+            // Автоматическая привязка Telegram-аккаунта в Mini App
+            {% if not user.telegram_id %}
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
+                fetch('/auth/webapp', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ initData: window.Telegram.WebApp.initData })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.linked) {
+                        window.location.reload();
+                    }
+                })
+                .catch(console.error);
+            }
+            {% endif %}
+          });
+        </script>
       </div>
     </section>
 

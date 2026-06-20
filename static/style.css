@@ -1412,10 +1412,6 @@ button, input, select, textarea {
   align-items: stretch;
 }
 
-.dash-grid > .dash-card {
-  align-self: start;
-}
-
 .dash-card {
   position: relative;
   border: 1px solid rgba(255, 255, 255, 0.1);
