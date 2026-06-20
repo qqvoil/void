@@ -67,11 +67,26 @@
     if (event.key === "Escape") setMenuOpen(false);
   });
 
+  let metrics = { vh: 1, vw: 1, edge: 24, menuW: 0, markW: 0, featTop: 0, entryTop: 0 };
+  
+  function updateMetrics() {
+    metrics.vh = window.innerHeight || 1;
+    metrics.vw = window.innerWidth || 1;
+    metrics.edge = metrics.vw <= 900 ? 16 : 24;
+    if (landingMenu) metrics.menuW = landingMenu.offsetWidth;
+    if (topMark) metrics.markW = topMark.offsetWidth;
+    if (featuresSection) metrics.featTop = featuresSection.offsetTop;
+    if (entrySection) metrics.entryTop = entrySection.offsetTop;
+  }
+
   window.addEventListener("resize", () => {
     updateMenuAnchor();
+    updateMetrics();
   });
+  updateMetrics();
 
   let smoothY = window.scrollY;
+  let isScrolling = false;
 
   function animate() {
     if (!heroLogo && !landingMenu && !featuresSection && !entrySection) return;
@@ -79,11 +94,19 @@
     const realY = window.scrollY;
     smoothY += (realY - smoothY) * 0.09;
 
-    const vh = window.innerHeight || 1;
-    const vw = window.innerWidth || 1;
-    const edge = vw <= 900 ? 16 : 24;
+    if (Math.abs(realY - smoothY) > 0.5) {
+      if (!isScrolling) {
+        document.body.classList.add('is-scrolling');
+        isScrolling = true;
+      }
+    } else {
+      if (isScrolling) {
+        document.body.classList.remove('is-scrolling');
+        isScrolling = false;
+      }
+    }
 
-    const progress = Math.min(smoothY / (vh * 0.7), 1);
+    const progress = Math.min(smoothY / (metrics.vh * 0.7), 1);
 
     if (heroLogo) {
       const easedProgress = easeOutQuint(progress);
@@ -95,23 +118,20 @@
     }
 
     if (landingMenu && topMark && featuresSection && entrySection) {
-      const menuWidth = landingMenu.offsetWidth;
-      const markWidth = topMark.offsetWidth;
+      const menuCenterX = metrics.vw / 2 - metrics.menuW / 2;
+      const menuRightX = metrics.vw - metrics.edge - metrics.menuW;
 
-      const menuCenterX = vw / 2 - menuWidth / 2;
-      const menuRightX = vw - edge - menuWidth;
-
-      const markCenterX = vw / 2 - markWidth / 2;
-      const markLeftX = edge;
+      const markCenterX = metrics.vw / 2 - metrics.markW / 2;
+      const markLeftX = metrics.edge;
 
       const toFeatures = easeOutQuint(clamp(
-        (smoothY - (featuresSection.offsetTop - vh * 0.85)) / (vh * 0.38),
+        (smoothY - (metrics.featTop - metrics.vh * 0.85)) / (metrics.vh * 0.38),
         0,
         1
       ));
 
       const toEntry = easeOutQuint(clamp(
-        (smoothY - (entrySection.offsetTop - vh * 0.62)) / (vh * 0.36),
+        (smoothY - (metrics.entryTop - metrics.vh * 0.62)) / (metrics.vh * 0.36),
         0,
         1
       ));
