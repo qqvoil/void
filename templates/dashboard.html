@@ -140,6 +140,9 @@
             <a href="{{ url_for('instructions') }}" class="dash-btn dash-btn--ghost">
               Инструкция по установке
             </a>
+            <a href="https://t.me/jointhevoid_bot" target="_blank" class="dash-btn dash-btn--ghost" style="margin-top: 0.5rem;">
+              Связаться с поддержкой
+            </a>
           </div>
         {% else %}
           <span class="dash-card__kicker">Subscription</span>
@@ -206,11 +209,10 @@
           </div>
           {% endif %}
 
-          <div class="dash-contact-list" style="margin-top: 2rem;">
-            <div class="dash-contact-item">
-              <span class="dash-contact-item__label">Поддержка (Telegram)</span>
-              <a href="https://t.me/jointhevoid_bot" target="_blank" class="dash-contact-item__value" style="color: inherit; text-decoration: none;">@jointhevoid_bot</a>
-            </div>
+          <div style="margin-top: 1.5rem;">
+            <a href="https://t.me/jointhevoid_bot" target="_blank" class="dash-btn dash-btn--ghost" style="width: 100%; justify-content: center; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);">
+              Связаться с поддержкой (Telegram)
+            </a>
           </div>
         {% endif %}
       </div>
@@ -331,9 +333,9 @@
     <footer class="dash-footer">
       <div class="dash-footer__meta">
         <span>Void Team</span>
-        <span><a href="{{ url_for('terms') }}" style="color: inherit; text-decoration: underline;">Оферта и Правила</a></span>
-        <span>Made by @qqvoil</span>
-        
+        <span><a href="https://telegra.ph/Polzovatelskoe-soglashenie-04-01-19" style="color: inherit; text-decoration: underline;" target="_blank">Пользовательское соглашение</a></span>
+        <span><a href="https://telegra.ph/Politika-konfidencialnosti-04-01-26" style="color: inherit; text-decoration: underline;" target="_blank">Политика конфиденциальности</a></span>
+        <span>Поддержка: <a href="https://t.me/jointhevoid_bot" style="color: inherit; text-decoration: underline;" target="_blank">@jointhevoid_bot</a></span>
       </div>
     </footer>
     
