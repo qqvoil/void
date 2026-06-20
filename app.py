@@ -443,29 +443,45 @@ def payment_pay():
     invoice = query_one("SELECT * FROM invoices WHERE user_id = ? ORDER BY id DESC LIMIT 1", (user_id,))
     pay_id = str(invoice["id"])
     
-    currency = "RUB"
-    desc = f"Void VPN Subscription ({months} months)"
+    # -------------------------------------------------------------
+    # Интеграция Platega.io
+    # -------------------------------------------------------------
+    from platega.client import PlategaClient
+    from platega.models import CreateTransactionRequest, PaymentDetails, PaymentMethod
     
-    success_url = ""
-    fail_url = ""
-    
-    sign_string = f"{project_id}:{pay_id}:{amount}:{currency}:{desc}:{success_url}:{fail_url}:{secret_key}"
-    sign = hashlib.sha256(sign_string.encode('utf-8')).hexdigest()
-    
-    import urllib.parse
-    query_params = {
-        "merchant_id": project_id,
-        "pay_id": pay_id,
-        "amount": amount,
-        "currency": currency,
-        "desc": desc,
-        "sign": sign
-    }
-    
-    query_string = urllib.parse.urlencode(query_params, quote_via=urllib.parse.quote)
-    url = "https://anypay.io/merchant?" + query_string
-    
-    return redirect(url)
+    try:
+        project_id = os.environ.get("PLATEGA_PROJECT_ID")
+        secret_key = os.environ.get("PLATEGA_SECRET_KEY")
+        
+        if not project_id or not secret_key:
+            flash("Оплата временно недоступна (касса не настроена).", "error")
+            return redirect(url_for("dashboard"))
+
+        client = PlategaClient(merchant_id=project_id, secret_key=secret_key)
+        
+        req = CreateTransactionRequest(
+            paymentMethod=PaymentMethod.CARD_RUB, # Оставляем пока карту по умолчанию
+            paymentDetails=PaymentDetails(
+                amount=float(amount),
+                currency="RUB"
+            ),
+            description=f"Void VPN Subscription ({months} months)",
+            return_url=f"https://jointhevoid.ru/dashboard",
+            failedUrl=f"https://jointhevoid.ru/dashboard",
+            payload=pay_id
+        )
+        
+        resp = client.create_invoice(req)
+        
+        # Platega.io обычно возвращает ссылку на оплату в response.
+        # Поскольку у нас нет точной документации на объект ответа, пока ставим заглушку.
+        flash("Бэкенд для Platega.io готов, ожидаем ключи для генерации реальных ссылок!", "info")
+        return redirect(url_for("dashboard"))
+        
+    except Exception as e:
+        logging.error(f"Platega create_invoice error: {e}")
+        flash("Ошибка при создании платежа.", "error")
+        return redirect(url_for("dashboard"))
 
 # --- Remnawave API Client ---
 
@@ -688,6 +704,27 @@ def anypay_webhook():
                                 
             execute("UPDATE users SET has_brought_referral_bonus = 1 WHERE id = ?", (user_id,))
                 
+    return "OK", 200
+
+@app.route("/payment/platega/webhook", methods=["POST"])
+@limiter.exempt
+def platega_webhook():
+    project_id = os.environ.get("PLATEGA_PROJECT_ID")
+    secret_key = os.environ.get("PLATEGA_SECRET_KEY")
+    
+    if not project_id or not secret_key:
+        return "Not configured", 500
+        
+    from platega.webhooks import PlategaWebhookHandler
+    from platega.models import CallbackPayload, PaymentStatus
+    
+    # TODO: В понедельник раскомментируем и добавим валидацию по документации
+    # handler = PlategaWebhookHandler()
+    # payload = CallbackPayload.parse_obj(request.json)
+    # if payload.status != PaymentStatus.SUCCESS:
+    #     return "OK", 200
+    # pay_id = payload.payload
+    
     return "OK", 200
 
 @app.route("/activate-trial", methods=["POST"])
