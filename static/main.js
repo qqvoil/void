@@ -23,6 +23,57 @@
     });
   });
 
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(value, max));
+  }
+
+  function lerp(a, b, t) {
+    return a + (b - a) * t;
+  }
+
+  function easeInOutCubic(t) {
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  }
+
+  function easeOutQuint(t) {
+    return 1 - Math.pow(1 - t, 5);
+  }
+
+  function smoothScrollTo(element, duration = 1600) {
+    const start = window.scrollY;
+    const targetY = element.getBoundingClientRect().top + start;
+    const distance = targetY - start;
+    const startTime = performance.now();
+    let isCancelled = false;
+
+    const cancelScroll = () => { isCancelled = true; cleanup(); };
+    const cleanup = () => {
+      window.removeEventListener('wheel', cancelScroll);
+      window.removeEventListener('touchstart', cancelScroll);
+    };
+
+    window.addEventListener('wheel', cancelScroll, { passive: true });
+    window.addEventListener('touchstart', cancelScroll, { passive: true });
+
+    function step(currentTime) {
+      if (isCancelled) return;
+      
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = easeInOutCubic(progress);
+
+      window.scrollTo(0, start + distance * eased);
+
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      } else {
+        cleanup();
+      }
+    }
+
+    requestAnimationFrame(step);
+  }
+
   function updateMenuAnchor() {
     if (!menuTrigger || !menuOverlay) return;
     const rect = menuTrigger.getBoundingClientRect();
