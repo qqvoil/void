@@ -153,9 +153,6 @@ def inject_globals():
         "contact_phone": CONTACT_PHONE,
     }
 
-@app.route("/anypay-verification.txt")
-def anypay_verification():
-    return "39bb84b1154ceecdf62eb423d3a3"
 
 @app.route("/terms")
 def terms():
@@ -430,13 +427,6 @@ def auth_webapp():
 @app.route("/payment/pay", methods=["POST"])
 @login_required
 def payment_pay():
-    project_id = os.environ.get("ANYPAY_PROJECT_ID")
-    secret_key = os.environ.get("ANYPAY_SECRET_KEY")
-    
-    if not project_id or not secret_key:
-        flash("Оплата временно недоступна (касса не настроена).", "error")
-        return redirect(url_for("dashboard"))
-        
     months_str = request.form.get("months", "1")
     try:
         months = int(months_str)
@@ -568,157 +558,6 @@ def remnawave_create_or_extend_user(username, expire_date_str):
             return data.get("subscriptionUrl")
             
     return None
-
-@app.route("/payment/anypay/webhook", methods=["POST", "GET"])
-@limiter.exempt
-def anypay_webhook():
-    project_id = os.environ.get("ANYPAY_PROJECT_ID")
-    secret_key = os.environ.get("ANYPAY_SECRET_KEY")
-    
-    if not project_id or not secret_key:
-        return "Not configured", 500
-        
-    req_data = request.form if request.method == "POST" else request.args
-    
-    currency = req_data.get('currency', '')
-    amount = req_data.get('amount', '')
-    pay_id = req_data.get('pay_id', '')
-    status = req_data.get('status', '')
-    sign_received = req_data.get('sign', '')
-    
-    sign_string = f"{currency}:{amount}:{pay_id}:{project_id}:{status}:{secret_key}"
-    sign_computed = hashlib.sha256(sign_string.encode('utf-8')).hexdigest()
-    
-    if sign_computed != sign_received:
-        return "wrong sign!", 400
-        
-    if status != 'paid':
-        return "OK", 200
-        
-    invoice = query_one("SELECT * FROM invoices WHERE id = ?", (pay_id,))
-    if not invoice:
-        return "invoice not found", 404
-        
-    if invoice["status"] == 'paid':
-        return "OK", 200
-        
-    execute("UPDATE invoices SET status = 'paid' WHERE id = ?", (pay_id,))
-    
-    user_id = invoice["user_id"]
-    user = query_one("SELECT * FROM users WHERE id = ?", (user_id,))
-    
-    if user:
-        now = datetime.now()
-        months_paid = invoice["months"] if invoice["months"] else 1
-        days_to_add = months_paid * 30
-        
-        if user["expires_at"]:
-            try:
-                current_expires = datetime.strptime(user["expires_at"], "%Y-%m-%d %H:%M:%S")
-                if current_expires > now:
-                    new_expires = current_expires + timedelta(days=days_to_add)
-                else:
-                    new_expires = now + timedelta(days=days_to_add)
-            except ValueError:
-                new_expires = now + timedelta(days=days_to_add)
-        else:
-            new_expires = now + timedelta(days=days_to_add)
-            
-        expires_str = new_expires.strftime("%Y-%m-%d %H:%M:%S")
-        
-        # Integrate with Remnawave
-        # Transliterate cyrillic to latin and sanitize
-        cyrillic_translit = {
-            'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'zh',
-            'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
-            'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'h', 'ц': 'ts',
-            'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
-        }
-        
-        safe_name = user['full_name'].lower()
-        for cyr, lat in cyrillic_translit.items():
-            safe_name = safe_name.replace(cyr, lat)
-            
-        import re
-        safe_name = re.sub(r'[^a-zA-Z0-9-]', '-', safe_name)
-        rw_username = f"User-{user_id}-{safe_name}"
-        rw_username = re.sub(r'-+', '-', rw_username).strip('-')
-        
-        sub_url = remnawave_create_or_extend_user(rw_username, expires_str)
-        
-        if sub_url:
-            execute("UPDATE users SET status = 'active', expires_at = ?, subscription_url = ?, notified_3d=0, notified_1d=0, notified_10h=0, notified_1h=0 WHERE id = ?", (expires_str, sub_url, user_id))
-        else:
-            execute("UPDATE users SET status = 'active', expires_at = ?, notified_3d=0, notified_1d=0, notified_10h=0, notified_1h=0 WHERE id = ?", (expires_str, user_id))
-        
-        telegram_id = user["telegram_id"]
-        if telegram_id:
-            bot_token = os.environ.get("BOT_TOKEN")
-            if bot_token:
-                msg = f"<b>Оплата успешно получена.</b> Ваш доступ к VPN активирован.\n\nКонфигурация для подключения:\n`{sub_url}`\n\nДанная ссылка также сохранена в вашем личном кабинете."
-                try:
-                    requests.post(f"http://91.238.123.4:10080/bot{bot_token}/sendMessage", data={
-                        "chat_id": telegram_id,
-                        "text": msg,
-                        "parse_mode": "HTML"
-                    }, timeout=5)
-                except Exception:
-                    pass
-                
-        # Referral Bonus Processing
-        if user["referrer_id"] and not user.get("has_brought_referral_bonus", 0):
-            referrer = query_one("SELECT * FROM users WHERE id = ?", (user["referrer_id"],))
-            if referrer:
-                try:
-                    bonus_days = (int(float(amount)) // 200) * 7
-                except (ValueError, TypeError):
-                    bonus_days = 7
-                    
-                if bonus_days > 0:
-                    ref_now = datetime.now()
-                    if referrer["expires_at"] and referrer["expires_at"] != 'Безлимит':
-                        try:
-                            ref_exp = datetime.strptime(referrer["expires_at"], "%Y-%m-%d %H:%M:%S")
-                            ref_new_exp = max(ref_exp, ref_now) + timedelta(days=bonus_days)
-                        except ValueError:
-                            ref_new_exp = ref_now + timedelta(days=bonus_days)
-                    elif referrer["expires_at"] == 'Безлимит':
-                        ref_new_exp = None # Don't update unlimited
-                    else:
-                        ref_new_exp = ref_now + timedelta(days=bonus_days)
-                        
-                    if ref_new_exp:
-                        ref_exp_str = ref_new_exp.strftime("%Y-%m-%d %H:%M:%S")
-                        
-                        ref_safe_name = referrer['full_name'].lower()
-                        for cyr, lat in cyrillic_translit.items():
-                            ref_safe_name = ref_safe_name.replace(cyr, lat)
-                        ref_safe_name = re.sub(r'[^a-zA-Z0-9-]', '-', ref_safe_name)
-                        ref_rw_username = f"User-{referrer['id']}-{ref_safe_name}"
-                        ref_rw_username = re.sub(r'-+', '-', ref_rw_username).strip('-')
-                        
-                        ref_sub_url = remnawave_create_or_extend_user(ref_rw_username, ref_exp_str)
-                        if ref_sub_url:
-                            execute("UPDATE users SET expires_at = ?, subscription_url = ?, notified_3d=0, notified_1d=0, notified_10h=0, notified_1h=0 WHERE id = ?", (ref_exp_str, ref_sub_url, referrer["id"]))
-                        else:
-                            execute("UPDATE users SET expires_at = ?, notified_3d=0, notified_1d=0, notified_10h=0, notified_1h=0 WHERE id = ?", (ref_exp_str, referrer["id"]))
-                            
-                        # Notify referrer
-                        ref_tg_id = referrer["telegram_id"]
-                        if ref_tg_id and bot_token:
-                            ref_msg = f"<b>Бонус успешно начислен.</b>\n\nПриглашенный вами пользователь совершил оплату. Вам начислено <b>{bonus_days} дней</b> доступа.\n\nВаша подписка активна до: {ref_exp_str}."
-                            try:
-                                requests.post(f"http://91.238.123.4:10080/bot{bot_token}/sendMessage", data={
-                                    "chat_id": ref_tg_id,
-                                    "text": ref_msg,
-                                    "parse_mode": "HTML"
-                                }, timeout=5)
-                            except Exception:
-                                pass
-                                
-            execute("UPDATE users SET has_brought_referral_bonus = 1 WHERE id = ?", (user_id,))
-                
-    return "OK", 200
 
 @app.route("/payment/platega/webhook", methods=["POST"])
 @limiter.exempt
