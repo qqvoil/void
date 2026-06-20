@@ -1,7 +1,7 @@
 const targetButtons = document.querySelectorAll("[data-target]");
 const topMark = document.getElementById("topMark");
 const heroLogo = document.getElementById("heroLogo");
-const plansSection = document.getElementById("plans");
+const featuresSection = document.getElementById("features");
 const entrySection = document.getElementById("entry");
 
 const voidSite = document.getElementById("voidSite");
@@ -31,6 +31,10 @@ function easeInOutCubic(t) {
   return t < 0.5
     ? 4 * t * t * t
     : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+function easeOutQuint(t) {
+  return 1 - Math.pow(1 - t, 5);
 }
 
 function smoothScrollTo(element, duration = 1600) {
@@ -118,8 +122,12 @@ window.addEventListener("resize", () => {
 let smoothY = window.scrollY;
 
 function animate() {
+  if (!heroLogo && !landingMenu && !featuresSection && !entrySection) {
+    return;
+  }
+
   const realY = window.scrollY;
-  smoothY += (realY - smoothY) * 0.065;
+  smoothY += (realY - smoothY) * 0.09;
 
   const vh = window.innerHeight || 1;
   const vw = window.innerWidth || 1;
@@ -128,7 +136,8 @@ function animate() {
   const progress = Math.min(smoothY / (vh * 0.7), 1);
 
   if (heroLogo) {
-    const scale = 1 - progress * 0.14;
+    const easedProgress = easeOutQuint(progress);
+    const scale = 1 - easedProgress * 0.14;
     const opacity = 1 - progress * 1.08;
     const blur = progress * 1.2;
 
@@ -141,7 +150,7 @@ function animate() {
     `;
   }
 
-  if (landingMenu && topMark && plansSection && entrySection) {
+  if (landingMenu && topMark && featuresSection && entrySection) {
     const menuWidth = landingMenu.offsetWidth;
     const markWidth = topMark.offsetWidth;
 
@@ -151,24 +160,24 @@ function animate() {
     const markCenterX = vw / 2 - markWidth / 2;
     const markLeftX = edge;
 
-    const toPlans = clamp(
-      (smoothY - (plansSection.offsetTop - vh * 0.72)) / (vh * 0.42),
+    const toFeatures = easeOutQuint(clamp(
+      (smoothY - (featuresSection.offsetTop - vh * 0.85)) / (vh * 0.38),
       0,
       1
-    );
+    ));
 
-    const toEntry = clamp(
+    const toEntry = easeOutQuint(clamp(
       (smoothY - (entrySection.offsetTop - vh * 0.62)) / (vh * 0.36),
       0,
       1
-    );
+    ));
 
-    const menuX = lerp(menuCenterX, menuRightX, toPlans);
+    const menuX = lerp(menuCenterX, menuRightX, toFeatures);
     const menuOpacity = 1 - toEntry;
 
-    const markPhaseX = lerp(markCenterX, markLeftX, toPlans);
+    const markPhaseX = lerp(markCenterX, markLeftX, toFeatures);
     const markX = lerp(markPhaseX, markCenterX, toEntry);
-    const markOpacity = Math.max(toPlans, toEntry);
+    const markOpacity = Math.max(toFeatures, toEntry);
 
     landingMenu.style.transform = `translate3d(${menuX}px, 0, 0)`;
     landingMenu.style.opacity = `${menuOpacity}`;
