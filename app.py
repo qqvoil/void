@@ -735,12 +735,17 @@ def platega_webhook():
 @login_required
 def activate_trial():
     user = g.user
-    if user["has_trial_used"]:
-        flash("Пробный период уже использован.", "error")
-        return redirect(url_for("dashboard"))
-        
+    
     if user["status"] == "active" or user["expires_at"]:
         flash("У вас уже есть активная подписка.", "error")
+        return redirect(url_for("dashboard"))
+        
+    db = get_db()
+    cursor = db.execute("UPDATE users SET has_trial_used = 1 WHERE id = ? AND has_trial_used = 0", (user["id"],))
+    db.commit()
+    
+    if cursor.rowcount == 0:
+        flash("Пробный период уже использован или находится в процессе активации.", "error")
         return redirect(url_for("dashboard"))
         
     # Give 7 days trial if user was referred, else 5 days
@@ -769,7 +774,7 @@ def activate_trial():
     sub_url = remnawave_create_or_extend_user(rw_username, expires_str)
     
     if sub_url:
-        execute("UPDATE users SET status = 'active', expires_at = ?, subscription_url = ?, has_trial_used = 1, notified_3d=0, notified_1d=0, notified_10h=0, notified_1h=0 WHERE id = ?", 
+        execute("UPDATE users SET status = 'active', expires_at = ?, subscription_url = ?, notified_3d=0, notified_1d=0, notified_10h=0, notified_1h=0 WHERE id = ?", 
                (expires_str, sub_url, user["id"]))
                
         telegram_id = user["telegram_id"]
