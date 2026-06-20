@@ -89,15 +89,9 @@
       const easedProgress = easeOutQuint(progress);
       const scale = 1 - easedProgress * 0.14;
       const opacity = 1 - progress * 1.08;
-      const blur = progress * 1.2;
 
       heroLogo.style.transform = `scale(${scale})`;
       heroLogo.style.opacity = `${Math.max(opacity, 0)}`;
-      heroLogo.style.filter = `
-        drop-shadow(0 0 16px rgba(255,255,255,0.08))
-        drop-shadow(0 0 44px rgba(255,255,255,0.05))
-        blur(${blur}px)
-      `;
     }
 
     if (landingMenu && topMark && featuresSection && entrySection) {

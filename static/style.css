@@ -156,6 +156,10 @@ button, input, select, textarea {
     drop-shadow(0 0 28px rgba(255, 255, 255, 0.04));
 }
 
+.top-mark a {
+  pointer-events: auto;
+}
+
 .void-site.menu-open .top-mark {
   opacity: 0 !important;
 }
@@ -367,7 +371,7 @@ button, input, select, textarea {
 .hero-logo {
   width: min(1160px, 70vw);
   margin: 0 auto 24px;
-  will-change: transform, opacity, filter;
+  will-change: transform, opacity;
   filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.08)) drop-shadow(0 0 48px rgba(255, 255, 255, 0.05));
 }
 
@@ -527,14 +531,14 @@ button, input, select, textarea {
 .void-orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.12;
+  opacity: 0.15;
+  will-change: transform;
 }
 
 .void-orb--1 {
   width: 600px;
   height: 600px;
-  background: var(--accent);
+  background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
   top: -10%;
   left: -10%;
   animation: orbDrift1 25s ease-in-out infinite;
@@ -543,7 +547,7 @@ button, input, select, textarea {
 .void-orb--2 {
   width: 400px;
   height: 400px;
-  background: rgba(255, 255, 255, 0.5);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, transparent 70%);
   bottom: 10%;
   right: -5%;
   animation: orbDrift2 30s ease-in-out infinite;
@@ -552,7 +556,7 @@ button, input, select, textarea {
 .void-orb--3 {
   width: 300px;
   height: 300px;
-  background: rgba(255, 255, 255, 0.35);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.6) 0%, transparent 70%);
   top: 40%;
   left: 50%;
   animation: orbDrift3 20s ease-in-out infinite;
