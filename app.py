@@ -810,6 +810,9 @@ def admin_logout():
 def admin_panel():
     q = request.args.get('q', '').strip()
     
+    # Auto-expire any past due subscriptions for accurate admin display
+    execute("UPDATE users SET status = 'expired' WHERE status IN ('active', 'trial') AND expires_at IS NOT NULL AND expires_at != 'Безлимит' AND expires_at < datetime('now')")
+    
     query = """
         SELECT 
             u.id, u.full_name, u.status, u.subscription_url, u.instructions_url, 
