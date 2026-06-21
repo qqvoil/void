@@ -63,10 +63,22 @@ def get_user_by_tg(telegram_id: int):
     cursor = conn.cursor()
     cursor.execute("SELECT id, full_name, status, expires_at FROM users WHERE telegram_id = ?", (telegram_id,))
     user = cursor.fetchone()
-    conn.close()
     if user:
-        # Return as dict for easier access
-        return {"id": user[0], "full_name": user[1], "status": user[2], "expires_at": user[3]}
+        status = user[2]
+        expires_at = user[3]
+        if status in ("active", "trial") and expires_at:
+            from datetime import datetime, timezone
+            try:
+                exp_dt = datetime.fromisoformat(expires_at).replace(tzinfo=timezone.utc)
+                if datetime.now(timezone.utc) > exp_dt:
+                    status = "expired"
+                    cursor.execute("UPDATE users SET status = 'expired' WHERE id = ?", (user[0],))
+                    conn.commit()
+            except Exception:
+                pass
+        conn.close()
+        return {"id": user[0], "full_name": user[1], "status": status, "expires_at": expires_at}
+    conn.close()
     return None
 
 def get_main_keyboard():

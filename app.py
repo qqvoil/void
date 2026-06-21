@@ -141,7 +141,19 @@ def load_logged_in_user():
     g.user = None
 
     if user_id:
-        g.user = query_one("SELECT * FROM users WHERE id = ?", (user_id,))
+        user = query_one("SELECT * FROM users WHERE id = ?", (user_id,))
+        if user:
+            status = user["status"]
+            expires_at = user["expires_at"]
+            if status in ("active", "trial") and expires_at:
+                try:
+                    exp_dt = datetime.fromisoformat(expires_at).replace(tzinfo=timezone.utc)
+                    if datetime.now(timezone.utc) > exp_dt:
+                        execute("UPDATE users SET status = 'expired' WHERE id = ?", (user_id,))
+                        user = query_one("SELECT * FROM users WHERE id = ?", (user_id,))
+                except Exception:
+                    pass
+        g.user = user
 
 
 @app.context_processor
