@@ -170,6 +170,10 @@ def inject_globals():
 def terms():
     return render_template("terms.html")
 
+@app.route("/privacy")
+def privacy():
+    return render_template("privacy.html")
+
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory(os.path.join(app.root_path, 'static', 'img'),

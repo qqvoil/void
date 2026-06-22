@@ -20,8 +20,8 @@
 
 <div class="dash-page">
   <header class="dash-topbar">
-    <div class="dash-topbar__brand" aria-hidden="true">
-      <img src="{{ url_for('static', filename='img/minimal_comp.png') }}" alt="Void">
+    <div class="dash-topbar__brand">
+      <a href="{{ url_for('index') }}"><img src="{{ url_for('static', filename='img/minimal_comp.png') }}" alt="Void"></a>
     </div>
 
     <div class="dash-menu" id="dashMenu">
@@ -349,8 +349,8 @@
     <footer class="dash-footer">
       <div class="dash-footer__meta">
         <span>Void Team</span>
-        <span><a href="https://telegra.ph/Polzovatelskoe-soglashenie-04-01-19" style="color: inherit; text-decoration: underline;" target="_blank">Пользовательское соглашение</a></span>
-        <span><a href="https://telegra.ph/Politika-konfidencialnosti-04-01-26" style="color: inherit; text-decoration: underline;" target="_blank">Политика конфиденциальности</a></span>
+        <span><a href="{{ url_for('terms') }}" style="color: inherit; text-decoration: underline;" target="_blank">Пользовательское соглашение</a></span>
+        <span><a href="{{ url_for('privacy') }}" style="color: inherit; text-decoration: underline;" target="_blank">Политика конфиденциальности</a></span>
         <span>Поддержка: <a href="https://t.me/jointhevoid_bot" style="color: inherit; text-decoration: underline;" target="_blank">@jointhevoid_bot</a></span>
       </div>
     </footer>

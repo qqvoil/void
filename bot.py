@@ -141,8 +141,9 @@ async def command_start_handler(message: types.Message) -> None:
     else:
         user = get_user_by_tg(telegram_id)
         welcome_text = (
-            "<b>Void VPN</b>\n\n"
-            "Добро пожаловать в панель управления, где вы можете управлять своей подпиской и получать оперативную помощь.\n\n"
+            "<b>Void</b>\n\n"
+            "Добро пожаловать в панель управления, где вы можете управлять своей подпиской.\n\n"
+            "Если у вас возникли вопросы или нужна помощь, нажмите кнопку <b>«Поддержка»</b> ниже, и наш специалист вам ответит.\n\n"
         )
         if user:
             name, status, expires = user["full_name"], user["status"], user["expires_at"]
