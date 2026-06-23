@@ -85,7 +85,7 @@ def get_main_keyboard():
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="Личный кабинет", web_app=WebAppInfo(url="https://jointhevoid.ru/dashboard?v=2")))
     builder.row(InlineKeyboardButton(text="Приглашение", callback_data="referral"))
-    builder.row(InlineKeyboardButton(text="Поддержка", callback_data="support"))
+    builder.row(InlineKeyboardButton(text="Поддержка", url="https://t.me/qqv0il"))
     builder.row(InlineKeyboardButton(text="Оферта", url="https://jointhevoid.ru/terms"),
                 InlineKeyboardButton(text="Конфиденциальность", url="https://jointhevoid.ru/privacy"))
     return builder.as_markup()
