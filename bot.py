@@ -205,6 +205,42 @@ async def handle_all_messages(message: types.Message) -> None:
         if not topic_id:
             return # Not in a topic
             
+        # Handle /closeticket command
+        if message.text and message.text.strip() == '/closeticket':
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            
+            # Find the user bound to this topic
+            user_tg_id = None
+            cursor.execute("SELECT id, telegram_id FROM users WHERE topic_id = ?", (topic_id,))
+            user_row = cursor.fetchone()
+            
+            if user_row:
+                user_tg_id = user_row[1]
+                cursor.execute("UPDATE users SET topic_id = NULL WHERE id = ?", (user_row[0],))
+            else:
+                cursor.execute("SELECT telegram_id FROM support_topics WHERE topic_id = ?", (topic_id,))
+                guest_row = cursor.fetchone()
+                if guest_row:
+                    user_tg_id = guest_row[0]
+                    cursor.execute("DELETE FROM support_topics WHERE topic_id = ?", (topic_id,))
+            
+            conn.commit()
+            conn.close()
+            
+            if user_tg_id:
+                try:
+                    await bot.send_message(user_tg_id, "<b>Ваш тикет (обращение) был закрыт.</b>\nЕсли у вас остались вопросы, просто напишите новое сообщение, и оно откроет новый тикет.", parse_mode="HTML")
+                except Exception as e:
+                    logging.error(f"Failed to notify user about closed ticket: {e}")
+            
+            try:
+                await bot.close_forum_topic(chat_id=admin_group_id, message_thread_id=topic_id)
+                await message.answer("Тикет закрыт и отвязан от пользователя. Новые сообщения создадут новый топик.", message_thread_id=topic_id)
+            except Exception as e:
+                await message.answer(f"Тикет отвязан от пользователя, но закрыть топик в Telegram не удалось: {e}", message_thread_id=topic_id)
+            return
+
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute("SELECT telegram_id FROM users WHERE topic_id = ?", (topic_id,))
