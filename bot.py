@@ -85,7 +85,7 @@ def get_main_keyboard():
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="Личный кабинет", web_app=WebAppInfo(url="https://jointhevoid.ru/dashboard?v=2")))
     builder.row(InlineKeyboardButton(text="Приглашение", callback_data="referral"))
-    builder.row(InlineKeyboardButton(text="Поддержка", url="https://t.me/qqv0il"))
+    builder.row(InlineKeyboardButton(text="Поддержка", callback_data="support"))
     builder.row(InlineKeyboardButton(text="Оферта", url="https://jointhevoid.ru/terms"),
                 InlineKeyboardButton(text="Конфиденциальность", url="https://jointhevoid.ru/privacy"))
     return builder.as_markup()
@@ -193,13 +193,41 @@ async def handle_all_messages(message: types.Message) -> None:
     if message.text and message.text.startswith('/'):
         return
 
+    admin_group_id_str = os.environ.get("ADMIN_GROUP_ID")
     admin_id_str = os.environ.get("ADMIN_TG_ID")
-    if not admin_id_str:
-        return
-        
-    admin_id = int(admin_id_str)
     
-    if message.from_user.id == admin_id and message.reply_to_message:
+    admin_group_id = int(admin_group_id_str) if admin_group_id_str else None
+    admin_id = int(admin_id_str) if admin_id_str else None
+    
+    # 1. Message from Admin Group (replying in a topic)
+    if admin_group_id and message.chat.id == admin_group_id:
+        topic_id = message.message_thread_id
+        if not topic_id:
+            return # Not in a topic
+            
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT telegram_id FROM users WHERE topic_id = ?", (topic_id,))
+        user_row = cursor.fetchone()
+        conn.close()
+        
+        if user_row and user_row[0]:
+            user_tg_id = user_row[0]
+            try:
+                if message.text:
+                    await bot.send_message(user_tg_id, f"<b>Служба поддержки:</b>\n\n{message.text}", parse_mode="HTML")
+                else:
+                    original_caption = message.caption or ""
+                    new_caption = f"<b>Служба поддержки:</b>\n\n{original_caption}"
+                    if len(new_caption) > 1024:
+                        new_caption = new_caption[:1020] + "..."
+                    await message.copy_to(user_tg_id, caption=new_caption, parse_mode="HTML")
+            except Exception as e:
+                await message.answer(f"Ошибка отправки пользователю: {e}", message_thread_id=topic_id)
+        return
+
+    # 2. Legacy Message from Admin DM (replying to forwarded message)
+    if not admin_group_id and admin_id and message.from_user.id == admin_id and message.reply_to_message:
         replied_text = message.reply_to_message.text or message.reply_to_message.caption or ""
         match = re.search(r"ID:\s*(\d+)", replied_text)
         if match:
@@ -217,9 +245,48 @@ async def handle_all_messages(message: types.Message) -> None:
                 await message.answer(f"Ошибка отправки: {e}")
             return
             
-    if message.from_user.id != admin_id:
-        username = f"@{message.from_user.username}" if message.from_user.username else "Без юзернейма"
-        user_info = f"От: {message.from_user.full_name} ({username})\nID: {message.from_user.id}"
+    # 3. Message from a User in DM
+    if message.chat.type != "private":
+        return
+        
+    telegram_id = message.from_user.id
+    username = f"@{message.from_user.username}" if message.from_user.username else "Без юзернейма"
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, topic_id, full_name FROM users WHERE telegram_id = ?", (telegram_id,))
+    user_row = cursor.fetchone()
+    
+    if user_row and admin_group_id:
+        db_id, topic_id, full_name = user_row
+        
+        if not topic_id:
+            try:
+                topic = await bot.create_forum_topic(chat_id=admin_group_id, name=f"[{db_id}] {full_name}")
+                topic_id = topic.message_thread_id
+                cursor.execute("UPDATE users SET topic_id = ? WHERE id = ?", (topic_id, db_id))
+                conn.commit()
+                
+                user_info = f"Новое обращение от: {full_name} ({username})\nID: {telegram_id}\nDB ID: {db_id}"
+                await bot.send_message(admin_group_id, user_info, message_thread_id=topic_id)
+            except Exception as e:
+                logging.error(f"Failed to create topic: {e}")
+                
+        conn.close()
+        
+        if topic_id:
+            try:
+                await message.copy_to(admin_group_id, message_thread_id=topic_id)
+                await message.answer("Ваше обращение передано в службу поддержки. Мы ответим вам в ближайшее время.")
+            except Exception as e:
+                logging.error(f"Failed to forward message to topic: {e}")
+        return
+
+    # Fallback to old behavior if no group ID or user not in DB
+    conn.close()
+    if admin_id and message.from_user.id != admin_id:
+        full_name = message.from_user.full_name
+        user_info = f"От: {full_name} ({username})\nID: {message.from_user.id}"
         
         try:
             if message.text:
@@ -231,7 +298,6 @@ async def handle_all_messages(message: types.Message) -> None:
                     new_caption = new_caption[:1020] + "..."
                 await message.copy_to(admin_id, caption=new_caption, parse_mode="HTML")
             
-            # Send confirmation
             await message.answer("Ваше обращение передано в службу поддержки. Мы ответим вам в ближайшее время.")
         except Exception as e:
             logging.error(f"Failed to forward message to admin: {e}")
