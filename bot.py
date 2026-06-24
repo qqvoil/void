@@ -194,13 +194,13 @@ async def handle_all_messages(message: types.Message) -> None:
         return
 
     admin_group_id_str = os.environ.get("ADMIN_GROUP_ID")
-    admin_id_str = os.environ.get("ADMIN_TG_ID")
-    
     admin_group_id = int(admin_group_id_str) if admin_group_id_str else None
-    admin_id = int(admin_id_str) if admin_id_str else None
+    
+    if not admin_group_id:
+        return
     
     # 1. Message from Admin Group (replying in a topic)
-    if admin_group_id and message.chat.id == admin_group_id:
+    if message.chat.id == admin_group_id:
         topic_id = message.message_thread_id
         if not topic_id:
             return # Not in a topic
@@ -209,6 +209,11 @@ async def handle_all_messages(message: types.Message) -> None:
         cursor = conn.cursor()
         cursor.execute("SELECT telegram_id FROM users WHERE topic_id = ?", (topic_id,))
         user_row = cursor.fetchone()
+        
+        if not user_row:
+            cursor.execute("SELECT telegram_id FROM support_topics WHERE topic_id = ?", (topic_id,))
+            user_row = cursor.fetchone()
+            
         conn.close()
         
         if user_row and user_row[0]:
@@ -226,26 +231,7 @@ async def handle_all_messages(message: types.Message) -> None:
                 await message.answer(f"Ошибка отправки пользователю: {e}", message_thread_id=topic_id)
         return
 
-    # 2. Legacy Message from Admin DM (replying to forwarded message)
-    if not admin_group_id and admin_id and message.from_user.id == admin_id and message.reply_to_message:
-        replied_text = message.reply_to_message.text or message.reply_to_message.caption or ""
-        match = re.search(r"ID:\s*(\d+)", replied_text)
-        if match:
-            user_id = int(match.group(1))
-            try:
-                if message.text:
-                    await bot.send_message(user_id, f"<b>Служба поддержки:</b>\n\n{message.text}", parse_mode="HTML")
-                else:
-                    original_caption = message.caption or ""
-                    new_caption = f"<b>Служба поддержки:</b>\n\n{original_caption}"
-                    if len(new_caption) > 1024:
-                        new_caption = new_caption[:1020] + "..."
-                    await message.copy_to(user_id, caption=new_caption, parse_mode="HTML")
-            except Exception as e:
-                await message.answer(f"Ошибка отправки: {e}")
-            return
-            
-    # 3. Message from a User in DM
+    # 2. Message from a User in DM
     if message.chat.type != "private":
         return
         
@@ -257,7 +243,9 @@ async def handle_all_messages(message: types.Message) -> None:
     cursor.execute("SELECT id, topic_id, full_name FROM users WHERE telegram_id = ?", (telegram_id,))
     user_row = cursor.fetchone()
     
-    if user_row and admin_group_id:
+    topic_id = None
+    
+    if user_row:
         db_id, topic_id, full_name = user_row
         
         if not topic_id:
@@ -271,36 +259,33 @@ async def handle_all_messages(message: types.Message) -> None:
                 await bot.send_message(admin_group_id, user_info, message_thread_id=topic_id)
             except Exception as e:
                 logging.error(f"Failed to create topic: {e}")
-                
-        conn.close()
+    else:
+        cursor.execute("SELECT topic_id FROM support_topics WHERE telegram_id = ?", (telegram_id,))
+        topic_row = cursor.fetchone()
         
-        if topic_id:
+        if topic_row:
+            topic_id = topic_row[0]
+        else:
+            full_name = message.from_user.full_name or "Гость"
             try:
-                await message.copy_to(admin_group_id, message_thread_id=topic_id)
-                await message.answer("Ваше обращение передано в службу поддержки. Мы ответим вам в ближайшее время.")
+                topic = await bot.create_forum_topic(chat_id=admin_group_id, name=f"[Гость] {full_name}")
+                topic_id = topic.message_thread_id
+                cursor.execute("INSERT INTO support_topics (topic_id, telegram_id) VALUES (?, ?)", (topic_id, telegram_id))
+                conn.commit()
+                
+                user_info = f"Новое обращение (Без привязки) от: {full_name} ({username})\nID: {telegram_id}"
+                await bot.send_message(admin_group_id, user_info, message_thread_id=topic_id)
             except Exception as e:
-                logging.error(f"Failed to forward message to topic: {e}")
-        return
-
-    # Fallback to old behavior if no group ID or user not in DB
+                logging.error(f"Failed to create topic for guest: {e}")
+                
     conn.close()
-    if admin_id and message.from_user.id != admin_id:
-        full_name = message.from_user.full_name
-        user_info = f"От: {full_name} ({username})\nID: {message.from_user.id}"
-        
+    
+    if topic_id:
         try:
-            if message.text:
-                await bot.send_message(admin_id, f"<b>Обращение:</b>\n\n{user_info}\n\n{message.text}", parse_mode="HTML")
-            else:
-                original_caption = message.caption or ""
-                new_caption = f"<b>Обращение:</b>\n{user_info}\n\n{original_caption}"
-                if len(new_caption) > 1024:
-                    new_caption = new_caption[:1020] + "..."
-                await message.copy_to(admin_id, caption=new_caption, parse_mode="HTML")
-            
+            await message.copy_to(admin_group_id, message_thread_id=topic_id)
             await message.answer("Ваше обращение передано в службу поддержки. Мы ответим вам в ближайшее время.")
         except Exception as e:
-            logging.error(f"Failed to forward message to admin: {e}")
+            logging.error(f"Failed to forward message to topic: {e}")
 
 async def notification_worker():
     """Background task to check for expiring subscriptions and send reminders."""
