@@ -617,6 +617,64 @@ def platega_webhook():
         logging.error(f"Platega webhook error: {e}")
         return "Internal Server Error", 500
 
+def add_subscription(user_id, days_to_add):
+    user = query_one("SELECT * FROM users WHERE id = ?", (user_id,))
+    if not user:
+        return
+        
+    now = datetime.now()
+    if user["expires_at"]:
+        try:
+            current_expires = datetime.strptime(user["expires_at"], "%Y-%m-%d %H:%M:%S")
+            if current_expires > now:
+                new_expires = current_expires + timedelta(days=days_to_add)
+            else:
+                new_expires = now + timedelta(days=days_to_add)
+        except ValueError:
+            new_expires = now + timedelta(days=days_to_add)
+    else:
+        new_expires = now + timedelta(days=days_to_add)
+        
+    expires_str = new_expires.strftime("%Y-%m-%d %H:%M:%S")
+    
+    cyrillic_translit = {
+        'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'zh',
+        'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
+        'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'h', 'ц': 'ts',
+        'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+    }
+    
+    safe_name = user['full_name'].lower()
+    for cyr, lat in cyrillic_translit.items():
+        safe_name = safe_name.replace(cyr, lat)
+        
+    import re
+    safe_name = re.sub(r'[^a-zA-Z0-9-]', '-', safe_name)
+    # Using 'Void-' prefix for all subscriptions consistently
+    rw_username = f"Void-{user['id']}-{safe_name}"
+    rw_username = re.sub(r'-+', '-', rw_username).strip('-')
+    
+    sub_url = remnawave_create_or_extend_user(rw_username, expires_str)
+    
+    if sub_url:
+        execute(
+            "UPDATE users SET expires_at = ?, status = ?, subscription_url = ? WHERE id = ?",
+            (expires_str, "active", sub_url, user["id"])
+        )
+        # Notify via bot if tg id is present
+        if user["telegram_id"]:
+            try:
+                import requests
+                bot_token = os.environ.get("TG_BOT_TOKEN")
+                if bot_token:
+                    text = f"✅ Ваша подписка успешно продлена до {expires_str}!"
+                    requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+                        "chat_id": user["telegram_id"],
+                        "text": text
+                    }, timeout=5)
+            except Exception as e:
+                logging.error(f"Failed to notify user {user_id}: {e}")
+
 @app.route("/activate-trial", methods=["POST"])
 @login_required
 def activate_trial():
@@ -654,7 +712,7 @@ def activate_trial():
         
     import re
     safe_name = re.sub(r'[^a-zA-Z0-9-]', '-', safe_name)
-    rw_username = f"Trial-{user['id']}-{safe_name}"
+    rw_username = f"Void-{user['id']}-{safe_name}"
     rw_username = re.sub(r'-+', '-', rw_username).strip('-')
     
     sub_url = remnawave_create_or_extend_user(rw_username, expires_str)
