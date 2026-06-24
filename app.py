@@ -466,9 +466,6 @@ def payment_pay():
     # -------------------------------------------------------------
     # Интеграция Platega.io
     # -------------------------------------------------------------
-    from platega.client import PlategaClient
-    from platega.models import CreateTransactionRequest, PaymentDetails, PaymentMethod
-    
     try:
         project_id = os.environ.get("PLATEGA_PROJECT_ID")
         secret_key = os.environ.get("PLATEGA_SECRET_KEY")
@@ -477,27 +474,39 @@ def payment_pay():
             flash("Оплата временно недоступна (касса не настроена).", "error")
             return redirect(url_for("dashboard"))
 
-        client = PlategaClient(merchant_id=project_id, secret_key=secret_key)
+        url = "https://app.platega.io/v2/transaction/process"
+        headers = {
+            "X-MerchantId": project_id,
+            "X-Secret": secret_key,
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "paymentDetails": {
+                "amount": int(float(amount)),
+                "currency": "RUB"
+            },
+            "description": f"Подписка Void ({months} мес.)",
+            "return": "https://jointhevoid.ru/dashboard",
+            "failedUrl": "https://jointhevoid.ru/dashboard",
+            "payload": pay_id
+        }
         
-        req = CreateTransactionRequest(
-            paymentMethod=PaymentMethod.CARD_RUB, # Оставляем пока карту по умолчанию
-            paymentDetails=PaymentDetails(
-                amount=float(amount),
-                currency="RUB"
-            ),
-            description=f"Void VPN Subscription ({months} months)",
-            return_url=f"https://jointhevoid.ru/dashboard",
-            failedUrl=f"https://jointhevoid.ru/dashboard",
-            payload=pay_id
-        )
+        resp = requests.post(url, headers=headers, json=payload, timeout=10)
         
-        resp = client.create_invoice(req)
-        
-        # Platega.io обычно возвращает ссылку на оплату в response.
-        # Поскольку у нас нет точной документации на объект ответа, пока ставим заглушку.
-        flash("Бэкенд для Platega.io готов, ожидаем ключи для генерации реальных ссылок!", "info")
-        return redirect(url_for("dashboard"))
-        
+        if resp.status_code == 200:
+            data = resp.json()
+            payment_url = data.get("url")
+            if payment_url:
+                return redirect(payment_url)
+            else:
+                logging.error(f"Platega error response: {data}")
+                flash("Касса не вернула ссылку на оплату.", "error")
+                return redirect(url_for("dashboard"))
+        else:
+            logging.error(f"Platega API error: {resp.status_code} {resp.text}")
+            flash("Ошибка при создании платежа на стороне кассы.", "error")
+            return redirect(url_for("dashboard"))
+            
     except Exception as e:
         logging.error(f"Platega create_invoice error: {e}")
         flash("Ошибка при создании платежа.", "error")
@@ -578,23 +587,35 @@ def remnawave_create_or_extend_user(username, expire_date_str):
 @app.route("/payment/platega/webhook", methods=["POST"])
 @limiter.exempt
 def platega_webhook():
-    project_id = os.environ.get("PLATEGA_PROJECT_ID")
     secret_key = os.environ.get("PLATEGA_SECRET_KEY")
     
-    if not project_id or not secret_key:
-        return "Not configured", 500
+    incoming_secret = request.headers.get("X-Secret")
+    if secret_key and incoming_secret != secret_key:
+        return "Unauthorized", 401
         
-    from platega.webhooks import PlategaWebhookHandler
-    from platega.models import CallbackPayload, PaymentStatus
-    
-    # TODO: В понедельник раскомментируем и добавим валидацию по документации
-    # handler = PlategaWebhookHandler()
-    # payload = CallbackPayload.parse_obj(request.json)
-    # if payload.status != PaymentStatus.SUCCESS:
-    #     return "OK", 200
-    # pay_id = payload.payload
-    
-    return "OK", 200
+    try:
+        data = request.json
+        if not data:
+            return "No data", 400
+            
+        logging.info(f"Platega webhook payload: {data}")
+            
+        status = data.get("status")
+        pay_id = data.get("payload")
+        
+        if status == "CONFIRMED" and pay_id:
+            invoice = query_one("SELECT * FROM invoices WHERE id = ?", (int(pay_id),))
+            if invoice and invoice["status"] == "pending":
+                execute("UPDATE invoices SET status = 'paid' WHERE id = ?", (invoice["id"],))
+                days = invoice["months"] * 30
+                add_subscription(invoice["user_id"], days)
+                logging.info(f"Invoice {pay_id} marked as PAID via Platega Webhook.")
+                
+        return "OK", 200
+        
+    except Exception as e:
+        logging.error(f"Platega webhook error: {e}")
+        return "Internal Server Error", 500
 
 @app.route("/activate-trial", methods=["POST"])
 @login_required
