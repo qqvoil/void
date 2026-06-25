@@ -190,7 +190,7 @@ import re
 
 @dp.message()
 async def handle_all_messages(message: types.Message) -> None:
-    if message.text and message.text.startswith('/'):
+    if message.text and message.text.startswith('/') and not message.text.strip().startswith('/closeticket'):
         return
 
     admin_group_id_str = os.environ.get("ADMIN_GROUP_ID")
