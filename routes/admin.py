@@ -9,6 +9,7 @@ admin_bp = Blueprint('admin', __name__)
 ADMIN_LOGIN = os.environ.get("ADMIN_LOGIN", "admin")
 ADMIN_PASSWORD_HASH = os.environ.get("ADMIN_PASSWORD_HASH", "")
 
+@admin_bp.route("/admin/login", methods=["GET", "POST"])
 def admin_login():
     if request.method == "POST":
         login_value = request.form.get("login", "").strip()

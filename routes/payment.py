@@ -84,6 +84,8 @@ def payment_pay():
 
 # --- Remnawave API Client ---
 
+@payment_bp.route("/payment/platega/webhook", methods=["POST"])
+@csrf.exempt
 def platega_webhook():
     secret_key = os.environ.get("PLATEGA_SECRET_KEY")
     

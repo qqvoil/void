@@ -1,5 +1,7 @@
 import os
-from flask import Blueprint, render_template, request, session, redirect, url_for, g
+from flask import Blueprint, render_template, request, session, redirect, url_for, g, flash
+from werkzeug.security import generate_password_hash
+import secrets
 from utils import login_required, query_one, execute
 from extensions import limiter
 
@@ -41,6 +43,8 @@ def webapp():
     return html_content.replace("TARGET_URL", target_url)
 
 
+@dashboard_bp.route("/dashboard")
+@login_required
 def dashboard():
     user = dict(g.user) if g.user else {}
     if not user["telegram_id"] and not user["tg_link_token"]:
@@ -54,6 +58,31 @@ def dashboard():
 
 @dashboard_bp.route("/set-password", methods=["POST"])
 @login_required
+def set_password():
+    new_login = request.form.get("login", "").strip()
+    password = request.form.get("password", "")
+    
+    if len(password) < 6:
+        flash("Ваш пароль слишком короткий.", "error")
+        return redirect(url_for("dashboard.dashboard"))
+        
+    if not new_login or len(new_login) < 3:
+        flash("Ваш логин слишком короткий.", "error")
+        return redirect(url_for("dashboard.dashboard"))
+        
+    # Check if login is unique (excluding current user)
+    existing = query_one("SELECT id FROM users WHERE lower(full_name) = lower(?) AND id != ?", (new_login, g.user["id"]))
+    if existing:
+        flash("Этот логин уже занят.", "error")
+        return redirect(url_for("dashboard.dashboard"))
+
+    password_hash = generate_password_hash(password)
+    execute("UPDATE users SET password_hash = ?, full_name = ? WHERE id = ?", (password_hash, new_login, g.user["id"]))
+    flash("Данные обновлены.", "success")
+    return redirect(url_for("dashboard.dashboard"))
+
+
+@dashboard_bp.route("/inst-landing")
 def instructions():
     return render_template("inst-landing.html")
 

@@ -182,34 +182,5 @@ def auth_webapp():
 @auth_bp.route("/logout")
 def logout():
     session.clear()
-    return redirect(url_for("index"))
-
-
-import secrets
-
-@auth_bp.route("/dashboard")
-@login_required
-def set_password():
-    new_login = request.form.get("login", "").strip()
-    password = request.form.get("password", "")
-    
-    if len(password) < 6:
-        flash("Ваш пароль слишком короткий.", "error")
-        return redirect(url_for("dashboard.dashboard"))
-        
-    if not new_login or len(new_login) < 3:
-        flash("Ваш логин слишком короткий.", "error")
-        return redirect(url_for("dashboard.dashboard"))
-        
-    # Check if login is unique (excluding current user)
-    existing = query_one("SELECT id FROM users WHERE lower(full_name) = lower(?) AND id != ?", (new_login, g.user["id"]))
-    if existing:
-        flash("Этот логин уже занят.", "error")
-        return redirect(url_for("dashboard.dashboard"))
-
-    password_hash = generate_password_hash(password)
-    execute("UPDATE users SET password_hash = ?, full_name = ? WHERE id = ?", (password_hash, new_login, g.user["id"]))
-    flash("Данные обновлены.", "success")
-    return redirect(url_for("dashboard.dashboard"))
-
+    return redirect(url_for("main.index"))
 
