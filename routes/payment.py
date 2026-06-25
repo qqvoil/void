@@ -5,7 +5,7 @@ import hashlib
 from datetime import datetime, timedelta, timezone
 from flask import Blueprint, request, redirect, url_for, flash, g
 from utils import query_one, execute, login_required, get_remnawave_squad_uuid, remnawave_create_or_extend_user
-from extensions import csrf
+from extensions import csrf, limiter
 import logging
 
 payment_bp = Blueprint('payment', __name__)
@@ -212,17 +212,13 @@ def add_subscription(user_id, days_to_add):
 
 @payment_bp.route("/activate-trial", methods=["POST"])
 @login_required
+@limiter.limit("2 per day", error_message="Слишком много попыток. Попробуйте позже.")
 def activate_trial():
     user = g.user
     
     if user["status"] == "active" or user["expires_at"]:
         flash("У вас уже есть активная подписка.", "error")
         return redirect(url_for("dashboard.dashboard"))
-        
-    if not user["telegram_id"]:
-        flash("Для получения пробного периода необходимо привязать Telegram. Это защита от накруток.", "error")
-        return redirect(url_for("dashboard.dashboard"))
-        
     db = get_db()
     cursor = db.execute("UPDATE users SET has_trial_used = 1 WHERE id = ? AND has_trial_used = 0", (user["id"],))
     db.commit()
