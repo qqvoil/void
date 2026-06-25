@@ -27,9 +27,26 @@ def payment_pay():
     }
     amount = prices.get(months, 200)
         
+    promo_code = request.form.get("promo_code", "").strip().upper()
+    used_promo = None
+    if promo_code:
+        promo = query_one("SELECT * FROM promocodes WHERE code = ?", (promo_code,))
+        if promo:
+            if promo["max_uses"] == 0 or promo["current_uses"] < promo["max_uses"]:
+                discount = promo["discount_percent"]
+                amount = int(amount * (1 - discount / 100.0))
+                used_promo = promo["code"]
+                execute("UPDATE promocodes SET current_uses = current_uses + 1 WHERE code = ?", (promo["code"],))
+            else:
+                flash("Лимит использований промокода исчерпан.", "error")
+                return redirect(url_for("dashboard.dashboard"))
+        else:
+            flash("Неверный промокод.", "error")
+            return redirect(url_for("dashboard.dashboard"))
+            
     user_id = g.user["id"]
     
-    execute("INSERT INTO invoices (user_id, amount, months) VALUES (?, ?, ?)", (user_id, amount, months))
+    execute("INSERT INTO invoices (user_id, amount, months, promo_code) VALUES (?, ?, ?, ?)", (user_id, amount, months, used_promo))
     invoice = query_one("SELECT * FROM invoices WHERE user_id = ? ORDER BY id DESC LIMIT 1", (user_id,))
     pay_id = str(invoice["id"])
     
@@ -109,6 +126,11 @@ def platega_webhook():
                 execute("UPDATE invoices SET status = 'paid' WHERE id = ?", (invoice["id"],))
                 days = invoice["months"] * 30
                 add_subscription(invoice["user_id"], days)
+                
+                from utils import notify_admin
+                user_record = query_one("SELECT full_name FROM users WHERE id = ?", (invoice["user_id"],))
+                name = user_record["full_name"] if user_record else "Неизвестный"
+                notify_admin(f"💰 <b>Успешная оплата!</b>\nПользователь: <code>{name}</code>\nСумма: <b>{invoice['amount']} ₽</b>\nДней: {days}")
                 
                 # Referral logic
                 user_obj = query_one("SELECT referrer_id, has_brought_referral_bonus FROM users WHERE id = ?", (invoice["user_id"],))

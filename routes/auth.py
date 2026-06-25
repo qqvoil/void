@@ -54,6 +54,10 @@ def register():
             """,
                 (full_name, password_hash, "/inst-landing", referrer_id),
             )
+            
+            from utils import notify_admin
+            notify_admin(f"🎉 <b>Новая регистрация:</b> <code>{full_name}</code>")
+            
             flash("Ваш аккаунт успешно создан. Пожалуйста, войдите в систему.", "success")
             return redirect(url_for("auth.login"))
 

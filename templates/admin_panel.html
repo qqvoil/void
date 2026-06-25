@@ -7,23 +7,91 @@
   <p><a href="{{ url_for('admin.admin_logout') }}">Выйти из админки</a></p>
 </div>
 
-<div class="card">
-  <h2>Рассылка новостей</h2>
-  <form method="post" action="{{ url_for('admin.admin_broadcast') }}">
+<div class="card" style="margin-bottom: 2rem;">
+  <h2>Рассылка (Telegram)</h2>
+  <form method="post" action="{{ url_for('admin.admin_broadcast') }}" onsubmit="return confirm('Вы уверены? Сообщение будет отправлено ВСЕМ пользователям, у которых привязан Telegram.')">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-    
-    <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; cursor: pointer;">
-      <input type="checkbox" name="attach_image" value="1" style="width: auto; margin: 0;">
-      Прикрепить фирменную картинку (логотип) к сообщению
-    </label>
-    
-    <label>Текст сообщения (поддерживает HTML)</label>
-    <textarea name="text" rows="4" placeholder="Введите текст рассылки..."></textarea>
-    
-    <div class="actions">
-      <button type="submit" onclick="return confirm('Отправить рассылку всем пользователям с Telegram?')">Отправить рассылку</button>
+    <div style="margin-bottom: 10px;">
+      <textarea name="text" rows="4" placeholder="Введите текст сообщения (поддерживается HTML-разметка, например <b>жирный</b>, <i>курсив</i>, <a>ссылка</a>)" required style="width: 100%; box-sizing: border-box;"></textarea>
     </div>
+    <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
+      <input type="checkbox" name="attach_image" id="attach_image" value="1">
+      <label for="attach_image" style="cursor: pointer;">Прикрепить картинку (static/img/fill_bot.jpg)</label>
+    </div>
+    <button type="submit">Отправить всем</button>
   </form>
+</div>
+
+<!-- Аналитика -->
+{% if stats %}
+<div class="card" style="margin-bottom: 2rem;">
+  <h2>Аналитика</h2>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+    <div style="background: rgba(42, 171, 238, 0.1); border: 1px solid rgba(42, 171, 238, 0.3); padding: 15px; border-radius: 8px; text-align: center;">
+      <h3 style="margin: 0; color: #2aabee; font-size: 2rem;">{{ stats.mrr }} ₽</h3>
+      <p style="margin: 5px 0 0; color: #aaa; font-size: 0.9rem;">MRR (Выручка за 30 дней)</p>
+    </div>
+    <div style="background: rgba(76, 175, 80, 0.1); border: 1px solid rgba(76, 175, 80, 0.3); padding: 15px; border-radius: 8px; text-align: center;">
+      <h3 style="margin: 0; color: #4CAF50; font-size: 2rem;">{{ stats.today_rev }} ₽</h3>
+      <p style="margin: 5px 0 0; color: #aaa; font-size: 0.9rem;">Оплачено сегодня</p>
+    </div>
+    <div style="background: rgba(255, 107, 107, 0.1); border: 1px solid rgba(255, 107, 107, 0.3); padding: 15px; border-radius: 8px; text-align: center;">
+      <h3 style="margin: 0; color: #ff6b6b; font-size: 2rem;">+{{ stats.users_today }}</h3>
+      <p style="margin: 5px 0 0; color: #aaa; font-size: 0.9rem;">Новых пользователей сегодня</p>
+    </div>
+    <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 8px; text-align: center;">
+      <h3 style="margin: 0; color: #fff; font-size: 2rem;">{{ stats.conversion }}%</h3>
+      <p style="margin: 5px 0 0; color: #aaa; font-size: 0.9rem;">Общая конверсия в оплату (всего {{ stats.total_users }} чел)</p>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Промокоды -->
+<div class="card" style="margin-bottom: 2rem;">
+  <h2>Промокоды</h2>
+  <form method="post" action="{{ url_for('admin.admin_add_promocode') }}" style="display: flex; gap: 10px; margin-bottom: 15px; align-items: flex-end; flex-wrap: wrap;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <div style="flex: 1; min-width: 150px;">
+      <label style="font-size: 0.8rem; color: #aaa;">Промокод</label>
+      <input type="text" name="code" placeholder="START20" required style="width: 100%; box-sizing: border-box;">
+    </div>
+    <div style="width: 100px;">
+      <label style="font-size: 0.8rem; color: #aaa;">Скидка (%)</label>
+      <input type="number" name="discount_percent" placeholder="20" required min="1" max="100" style="width: 100%; box-sizing: border-box;">
+    </div>
+    <div style="width: 120px;">
+      <label style="font-size: 0.8rem; color: #aaa;">Макс. исп. (0=без)</label>
+      <input type="number" name="max_uses" placeholder="0" value="0" min="0" style="width: 100%; box-sizing: border-box;">
+    </div>
+    <button type="submit" style="width: auto;">Добавить</button>
+  </form>
+
+  {% if promocodes %}
+  <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+    <tr style="background: rgba(255,255,255,0.05);">
+      <th style="padding: 8px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1);">Код</th>
+      <th style="padding: 8px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1);">Скидка</th>
+      <th style="padding: 8px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1);">Использований</th>
+      <th style="padding: 8px; text-align: right; border-bottom: 1px solid rgba(255,255,255,0.1);">Действие</th>
+    </tr>
+    {% for p in promocodes %}
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); font-family: monospace;">{{ p.code }}</td>
+      <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.05);">{{ p.discount_percent }}%</td>
+      <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+        {{ p.current_uses }} / {% if p.max_uses == 0 %}∞{% else %}{{ p.max_uses }}{% endif %}
+      </td>
+      <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right;">
+        <form method="post" action="{{ url_for('admin.admin_delete_promocode', promo_id=p.id) }}" style="display:inline;" onsubmit="return confirm('Удалить промокод?');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <button type="submit" style="background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.3); color: #ff6b6b; padding: 4px 8px; font-size: 0.8rem; width: auto;">Удалить</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endif %}
 </div>
 
 <div class="card">

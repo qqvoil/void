@@ -148,7 +148,40 @@ def admin_panel():
         sub_url = u.get("subscription_url")
         u["active_devices"] = rw_users.get(sub_url, 0)
 
-    return render_template("admin_panel.html", users=users)
+    mrr_query = query_one("SELECT SUM(amount) as mrr FROM invoices WHERE status = 'paid' AND created_at >= date('now', '-30 days')")
+    mrr = mrr_query["mrr"] if mrr_query and mrr_query["mrr"] else 0
+    
+    today_rev_query = query_one("SELECT SUM(amount) as rev FROM invoices WHERE status = 'paid' AND date(created_at) = date('now')")
+    today_rev = today_rev_query["rev"] if today_rev_query and today_rev_query["rev"] else 0
+    
+    users_today_query = query_one("SELECT COUNT(*) as count FROM users WHERE date(created_at) = date('now')")
+    users_today = users_today_query["count"] if users_today_query else 0
+    
+    total_users_query = query_one("SELECT COUNT(*) as count FROM users")
+    total_users = total_users_query["count"] if total_users_query else 0
+    
+    paid_users_query = query_one("SELECT COUNT(DISTINCT user_id) as count FROM invoices WHERE status = 'paid'")
+    paid_users = paid_users_query["count"] if paid_users_query else 0
+    
+    conversion = 0
+    if total_users > 0:
+        conversion = round((paid_users / total_users) * 100, 1)
+        
+    stats = {
+        "mrr": mrr,
+        "today_rev": today_rev,
+        "users_today": users_today,
+        "total_users": total_users,
+        "conversion": conversion
+    }
+    
+    promocodes = []
+    try:
+        promocodes = [dict(p) for p in query_all("SELECT * FROM promocodes ORDER BY id DESC")]
+    except:
+        pass
+
+    return render_template("admin_panel.html", users=users, stats=stats, promocodes=promocodes)
 
 
 @admin_bp.route("/admin/user/<int:user_id>/update", methods=["POST"])
@@ -189,5 +222,31 @@ def admin_delete_user(user_id):
     return redirect(url_for("admin.admin_panel"))
 
 
-if __name__ == "__main__":
-    app.run(debug=True)
+@admin_bp.route("/admin/promocode/add", methods=["POST"])
+@admin_required
+def admin_add_promocode():
+    code = request.form.get("code", "").strip().upper()
+    discount = request.form.get("discount_percent", type=int, default=0)
+    max_uses = request.form.get("max_uses", type=int, default=0)
+    
+    if not code or discount <= 0 or discount > 100:
+        flash("Некорректные данные для промокода.", "error")
+        return redirect(url_for("admin.admin_panel"))
+        
+    try:
+        execute("INSERT INTO promocodes (code, discount_percent, max_uses) VALUES (?, ?, ?)", (code, discount, max_uses))
+        flash("Промокод успешно добавлен.", "success")
+    except Exception as e:
+        flash("Ошибка (возможно, промокод уже существует).", "error")
+        
+    return redirect(url_for("admin.admin_panel"))
+
+@admin_bp.route("/admin/promocode/<int:promo_id>/delete", methods=["POST"])
+@admin_required
+def admin_delete_promocode(promo_id):
+    try:
+        execute("DELETE FROM promocodes WHERE id = ?", (promo_id,))
+        flash("Промокод удален.", "success")
+    except:
+        flash("Ошибка при удалении.", "error")
+    return redirect(url_for("admin.admin_panel"))
