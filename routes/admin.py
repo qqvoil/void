@@ -12,21 +12,26 @@ ADMIN_PASSWORD_HASH = os.environ.get("ADMIN_PASSWORD_HASH", "")
 
 @admin_bp.route("/admin/login", methods=["GET", "POST"])
 def admin_login():
+    admin_login_env = os.environ.get("ADMIN_LOGIN", "admin")
+    admin_password_hash_env = os.environ.get("ADMIN_PASSWORD_HASH", "")
+
     if request.method == "POST":
         login_value = request.form.get("login", "").strip()
         password = request.form.get("password", "")
 
         error = "Вы ввели неверный логин или пароль."
 
-        if not ADMIN_PASSWORD_HASH:
+        logging.info(f"Admin login attempt for {login_value}. Env hash len: {len(admin_password_hash_env)}")
+
+        if not admin_password_hash_env:
             flash(
                 "Конфигурация сервера неполная. Задай ADMIN_PASSWORD_HASH.",
                 "error",
             )
             return render_template("admin_login.html")
 
-        if login_value == ADMIN_LOGIN and check_password_hash(
-            ADMIN_PASSWORD_HASH, password
+        if login_value == admin_login_env and check_password_hash(
+            admin_password_hash_env, password
         ):
             session.clear()
             session.permanent = True
