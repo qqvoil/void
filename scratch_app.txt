@@ -1,0 +1,997 @@
+1 import os
+2 import sqlite3
+3 import random
+4 import string
+5 from datetime import datetime, timedelta, timezone
+6 from functools import wraps
+7 import requests
+8 import json
+9 import logging
+10 
+11 from flask import (
+12     Flask,
+13     flash,
+14     g,
+15     redirect,
+16     render_template,
+17     request,
+18     session,
+19     url_for,
+20     send_from_directory,
+21 )
+22 from werkzeug.security import check_password_hash, generate_password_hash
+23 from flask_wtf.csrf import CSRFProtect
+24 from flask_limiter import Limiter
+25 from flask_limiter.util import get_remote_address
+26 
+27 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+28 DATABASE = os.path.join(BASE_DIR, "users.db")
+29 SCHEMA_PATH = os.path.join(BASE_DIR, "schema.sql")
+30 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
+31 
+32 INSTRUCTION_TEMPLATES = {
+33     "ios": "inst-ios.html",
+34     "android": "inst-android.html",
+35     "windows": "inst-windows.html",
+36     "macos": "inst-macos.html",
+37     "dev": "inst-dev.html",
+38 }
+39 
+40 app = Flask(__name__)
+41 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
+42 app.config["DATABASE"] = DATABASE
+43 
+44 csrf = CSRFProtect(app)
+45 limiter = Limiter(
+46     get_remote_address,
+47     app=app,
+48     default_limits=["1000 per day", "100 per hour"],
+49     storage_uri="memory://"
+50 )
+51 
+52 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
+53 app.config["SESSION_COOKIE_HTTPONLY"] = True
+54 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+55 app.config["SESSION_REFRESH_EACH_REQUEST"] = True
+56 
+57 ADMIN_LOGIN = os.environ.get("ADMIN_LOGIN", "admin")
+58 ADMIN_PASSWORD_HASH = os.environ.get("ADMIN_PASSWORD_HASH", "")
+59 
+60 CONTACT_TELEGRAM = os.environ.get("CONTACT_TELEGRAM", "@yourcontact")
+61 CONTACT_EMAIL = os.environ.get("CONTACT_EMAIL", "hello@example.com")
+62 CONTACT_PHONE = os.environ.get("CONTACT_PHONE", "+49 000 000 0000")
+63 
+64 
+65 def get_db():
+66     if "db" not in g:
+67         g.db = sqlite3.connect(app.config["DATABASE"])
+68         g.db.row_factory = sqlite3.Row
+69         g.db.execute("PRAGMA journal_mode=WAL;")
+70     return g.db
+71 
+72 
+73 @app.teardown_appcontext
+74 def close_db(error=None):
+75     db = g.pop("db", None)
+76     if db is not None:
+77         db.close()
+78 
+79 
+80 def init_db():
+81     db = get_db()
+82     with open(SCHEMA_PATH, "r", encoding="utf-8") as f:
+83         db.executescript(f.read())
+84     db.commit()
+85 
+86 
+87 def query_one(query, params=()):
+88     db = get_db()
+89     return db.execute(query, params).fetchone()
+90 
+91 
+92 def query_all(query, params=()):
+93     db = get_db()
+94     return db.execute(query, params).fetchall()
+95 
+96 
+97 def execute(query, params=()):
+98     db = get_db()
+99     db.execute(query, params)
+100     db.commit()
+101 
+102 
+103 def login_required(view):
+104     @wraps(view)
+105     def wrapped_view(*args, **kwargs):
+106         if getattr(g, 'user', None) is None:
+107             session.clear()
+108             return redirect(url_for("login"))
+109         return view(*args, **kwargs)
+110 
+111     return wrapped_view
+112 
+113 
+114 def admin_required(view):
+115     @wraps(view)
+116     def wrapped_view(*args, **kwargs):
+117         if not session.get("is_admin"):
+118             return redirect(url_for("admin_login"))
+119         return view(*args, **kwargs)
+120 
+121     return wrapped_view
+122 
+123 
+124 def render_instruction_page(template_name):
+125     template_path = os.path.join(TEMPLATES_DIR, template_name)
+126 
+127     if os.path.exists(template_path):
+128         return render_template(template_name)
+129 
+130     return render_template("inst-landing.html")
+131 
+132 
+133 @app.before_request
+134 def load_logged_in_user():
+135     # Capture referral code from any page
+136     ref = request.args.get("ref")
+137     if ref and ref.isdigit():
+138         session["ref"] = ref
+139 
+140     user_id = session.get("user_id")
+141     g.user = None
+142 
+143     if user_id:
+144         user = query_one("SELECT * FROM users WHERE id = ?", (user_id,))
+145         if user:
+146             status = user["status"]
+147             expires_at = user["expires_at"]
+148             if status in ("active", "trial") and expires_at:
+149                 try:
+150                     exp_dt = datetime.fromisoformat(expires_at).replace(tzinfo=timezone.utc)
+151                     if datetime.now(timezone.utc) > exp_dt:
+152                         execute("UPDATE users SET status = 'expired' WHERE id = ?", (user_id,))
+153                         user = query_one("SELECT * FROM users WHERE id = ?", (user_id,))
+154                 except Exception:
+155                     pass
+156         g.user = user
+157 
+158 
+159 @app.context_processor
+160 def inject_globals():
+161     return {
+162         "current_user": g.get("user"),
+163         "contact_telegram": CONTACT_TELEGRAM,
+164         "contact_email": CONTACT_EMAIL,
+165         "contact_phone": CONTACT_PHONE,
+166     }
+167 
+168 
+169 @app.route("/terms")
+170 def terms():
+171     return render_template("terms.html")
+172 
+173 @app.route("/privacy")
+174 def privacy():
+175     return render_template("privacy.html")
+176 
+177 @app.route('/favicon.ico')
+178 def favicon():
+179     return send_from_directory(os.path.join(app.root_path, 'static', 'img'),
+180                                'favicon.jpg', mimetype='image/jpeg')
+181 
+182 @app.route("/")
+183 def index():
+184     if session.get("is_admin"):
+185         return redirect(url_for("admin_panel"))
+186     return render_template("index.html")
+187 
+188 
+189 @app.route("/webapp")
+190 def webapp():
+191     # Telegram Android WebApp sometimes gets stuck on 302 redirects.
+192     # We return a 200 OK page that redirects via JS.
+193     target_url = url_for("dashboard") if session.get("user_id") else url_for("login")
+194     html_content = """
+195     <!DOCTYPE html>
+196     <html>
+197     <head>
+198         <meta charset="utf-8">
+199         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+200         <title>Loading...</title>
+201         <script src="{url_for('static', filename='telegram-web-app.js')}"></script>
+202         <script>
+203             if (window.Telegram && window.Telegram.WebApp) {
+204                 window.Telegram.WebApp.ready();
+205             }
+206             window.location.replace("TARGET_URL");
+207         </script>
+208     </head>
+209     <body style="background-color: #0a0a0a; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: sans-serif;">
+210         <div style="text-align: center;">Загрузка...</div>
+211     </body>
+212     </html>
+213     """
+214     return html_content.replace("TARGET_URL", target_url)
+215 
+216 
+217 #@app.route("/init-db")
+218 #def init_db_route():
+219 #    init_db()
+220 #    return "Database initialized."
+221 
+222 
+223 @app.route("/register", methods=["GET", "POST"])
+224 @limiter.limit("10 per hour")
+225 def register():
+226     if session.get("user_id"):
+227         return redirect(url_for("dashboard"))
+228         
+229     if request.method == "POST":
+230         full_name = request.form.get("full_name", "").strip()
+231         password = request.form.get("password", "")
+232         confirm_password = request.form.get("confirm_password", "")
+233 
+234         error = None
+235 
+236         if not full_name:
+237             error = "Введите логин."
+238         elif len(full_name) < 3:
+239             error = "Логин слишком короткий (минимум 3 символа)."
+240         elif not password:
+241             error = "Введите пароль."
+242         elif len(password) < 6:
+243             error = "Пароль должен быть не короче 6 символов."
+244         elif password != confirm_password:
+245             error = "Пароли не совпадают."
+246 
+247         existing_user = query_one(
+248             "SELECT id FROM users WHERE lower(full_name) = lower(?)",
+249             (full_name,),
+250         )
+251         if existing_user:
+252             error = "Этот логин уже занят. Пожалуйста, придумайте другой."
+253 
+254         referrer_id = None
+255         ref = request.args.get("ref") or request.form.get("ref") or session.get("ref")
+256         if ref and str(ref).isdigit():
+257             referrer = query_one("SELECT id FROM users WHERE id = ?", (int(ref),))
+258             if referrer:
+259                 referrer_id = int(ref)
+260 
+261         if error is None:
+262             password_hash = generate_password_hash(password)
+263             execute(
+264                 """
+265                 INSERT INTO users (full_name, password_hash, status, instructions_url, referrer_id)
+266                 VALUES (?, ?, 'new', ?, ?)
+267             """,
+268                 (full_name, password_hash, "/inst-landing", referrer_id),
+269             )
+270             flash("Ваш аккаунт успешно создан. Пожалуйста, войдите в систему.", "success")
+271             return redirect(url_for("login"))
+272 
+273         flash(error, "error")
+274 
+275     return render_template("register.html")
+276 
+277 
+278 @app.route("/login", methods=["GET", "POST"])
+279 @limiter.limit("5 per minute")
+280 def login():
+281     if session.get("user_id"):
+282         return redirect(url_for("dashboard"))
+283         
+284     if request.method == "POST":
+285         full_name = request.form.get("full_name", "").strip()
+286         password = request.form.get("password", "")
+287 
+288         error = "Неверные данные для входа."
+289         user = query_one(
+290             "SELECT * FROM users WHERE lower(full_name) = lower(?)",
+291             (full_name,),
+292         )
+293 
+294         if user and check_password_hash(user["password_hash"], password):
+295             session.clear()
+296             session.permanent = True
+297             session["user_id"] = user["id"]
+298             return redirect(url_for("dashboard"))
+299 
+300         flash(error, "error")
+301 
+302     return render_template("login.html")
+303 
+304 
+305 import hashlib
+306 import hmac
+307 import time
+308 
+309 def check_telegram_authorization(auth_data: dict) -> bool:
+310     bot_token = os.environ.get("BOT_TOKEN")
+311     if not bot_token:
+312         return False
+313     check_hash = auth_data.pop('hash', None)
+314     if not check_hash:
+315         return False
+316     
+317     if time.time() - int(auth_data.get('auth_date', 0)) > 86400:
+318         return False
+319         
+320     data_check_arr = [f"{key}={value}" for key, value in auth_data.items() if value]
+321     data_check_arr.sort()
+322     data_check_string = "\n".join(data_check_arr)
+323     
+324     secret_key = hashlib.sha256(bot_token.encode()).digest()
+325     hash_computed = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+326     
+327     return hmac.compare_digest(hash_computed, check_hash)
+328 
+329 
+330 @app.route("/auth/telegram")
+331 def auth_telegram():
+332     auth_data = request.args.to_dict()
+333     if check_telegram_authorization(auth_data.copy()):
+334         telegram_id = auth_data.get('id')
+335         first_name = auth_data.get('first_name', 'Telegram User')
+336         
+337         user = query_one("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,))
+338         if user:
+339             session.clear()
+340             session.permanent = True
+341             session["user_id"] = user["id"]
+342             return redirect(url_for("dashboard"))
+343         else:
+344             execute(
+345                 "INSERT INTO users (full_name, telegram_id, status) VALUES (?, ?, ?)",
+346                 (first_name, telegram_id, "new")
+347             )
+348             new_user = query_one("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,))
+349             session.clear()
+350             session.permanent = True
+351             session["user_id"] = new_user["id"]
+352             return redirect(url_for("dashboard"))
+353     
+354     flash("Ошибка авторизации Telegram", "error")
+355     return redirect(url_for("login"))
+356 
+357 
+358 def check_webapp_authorization(init_data: str) -> bool:
+359     import urllib.parse
+360     bot_token = os.environ.get("BOT_TOKEN") or os.environ.get("TG_BOT_TOKEN")
+361     if not bot_token:
+362         return False
+363         
+364     parsed_data = urllib.parse.parse_qsl(init_data)
+365     auth_data = dict(parsed_data)
+366     
+367     check_hash = auth_data.pop('hash', None)
+368     if not check_hash:
+369         return False
+370         
+371     data_check_arr = [f"{key}={value}" for key, value in auth_data.items()]
+372     data_check_arr.sort()
+373     data_check_string = "\n".join(data_check_arr)
+374     
+375     secret_key = hmac.new(b"WebAppData", bot_token.encode(), hashlib.sha256).digest()
+376     hash_computed = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+377     
+378     return hmac.compare_digest(hash_computed, check_hash)
+379 
+380 
+381 @app.route("/auth/webapp", methods=["POST"])
+382 @csrf.exempt
+383 def auth_webapp():
+384     init_data = request.json.get('initData')
+385     if not init_data:
+386         logging.error("No initData provided")
+387         return {"success": False, "error": "No initData"}
+388         
+389     is_valid = check_webapp_authorization(init_data)
+390     logging.info(f"WebApp Auth check: {is_valid}")
+391     if is_valid:
+392         import urllib.parse
+393         import json
+394         parsed = dict(urllib.parse.parse_qsl(init_data))
+395         user_data = json.loads(parsed.get('user', '{}'))
+396         
+397         telegram_id = user_data.get('id')
+398         first_name = user_data.get('first_name', 'Telegram User')
+399         
+400         if not telegram_id:
+401             logging.error("No telegram_id in user_data")
+402             return {"success": False, "error": "No telegram_id"}
+403             
+404         existing_tg_user = query_one("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,))
+405         
+406         if getattr(g, 'user', None):
+407             # User is already logged in, let's link the TG account if possible
+408             current_user_id = g.user["id"]
+409             if existing_tg_user and existing_tg_user["id"] == current_user_id:
+410                 # Already linked properly
+411                 return {"success": True, "linked": False}
+412             elif not existing_tg_user:
+413                 execute("UPDATE users SET telegram_id = ? WHERE id = ?", (telegram_id, current_user_id))
+414                 return {"success": True, "linked": True}
+415             else:
+416                 # Switch to existing TG user to avoid conflicts
+417                 session.clear()
+418                 session.permanent = True
+419                 session["user_id"] = existing_tg_user["id"]
+420                 return {"success": True, "linked": True}
+421                 
+422         # User not logged in
+423         if existing_tg_user:
+424             session.clear()
+425             session.permanent = True
+426             session["user_id"] = existing_tg_user["id"]
+427             return {"success": True}
+428         else:
+429             execute(
+430                 "INSERT INTO users (full_name, telegram_id, status) VALUES (?, ?, ?)",
+431                 (first_name, telegram_id, "new")
+432             )
+433             new_user = query_one("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,))
+434             session.clear()
+435             session.permanent = True
+436             session["user_id"] = new_user["id"]
+437             return {"success": True}
+438             
+439     logging.error("WebApp Auth validation failed")
+440     return {"success": False, "error": "Invalid auth"}
+441 
+442 
+443 @app.route("/payment/pay", methods=["POST"])
+444 @login_required
+445 def payment_pay():
+446     months_str = request.form.get("months", "1")
+447     try:
+448         months = int(months_str)
+449     except ValueError:
+450         months = 1
+451         
+452     prices = {
+453         1: 200,
+454         3: 510,
+455         6: 960,
+456         12: 1800
+457     }
+458     amount = prices.get(months, 200)
+459         
+460     user_id = g.user["id"]
+461     
+462     execute("INSERT INTO invoices (user_id, amount, months) VALUES (?, ?, ?)", (user_id, amount, months))
+463     invoice = query_one("SELECT * FROM invoices WHERE user_id = ? ORDER BY id DESC LIMIT 1", (user_id,))
+464     pay_id = str(invoice["id"])
+465     
+466     # -------------------------------------------------------------
+467     # Интеграция Platega.io
+468     # -------------------------------------------------------------
+469     try:
+470         project_id = os.environ.get("PLATEGA_PROJECT_ID")
+471         secret_key = os.environ.get("PLATEGA_SECRET_KEY")
+472         
+473         if not project_id or not secret_key:
+474             flash("Оплата временно недоступна (касса не настроена).", "error")
+475             return redirect(url_for("dashboard"))
+476 
+477         url = "https://app.platega.io/v2/transaction/process"
+478         headers = {
+479             "X-MerchantId": project_id,
+480             "X-Secret": secret_key,
+481             "Content-Type": "application/json"
+482         }
+483         payload = {
+484             "paymentDetails": {
+485                 "amount": int(float(amount)),
+486                 "currency": "RUB"
+487             },
+488             "description": f"Подписка Void ({months} мес.)",
+489             "return": "https://jointhevoid.ru/dashboard",
+490             "failedUrl": "https://jointhevoid.ru/dashboard",
+491             "payload": pay_id
+492         }
+493         
+494         resp = requests.post(url, headers=headers, json=payload, timeout=10)
+495         
+496         if resp.status_code == 200:
+497             data = resp.json()
+498             payment_url = data.get("url")
+499             if payment_url:
+500                 return redirect(payment_url)
+501             else:
+502                 logging.error(f"Platega error response: {data}")
+503                 flash("Касса не вернула ссылку на оплату.", "error")
+504                 return redirect(url_for("dashboard"))
+505         else:
+506             logging.error(f"Platega API error: {resp.status_code} {resp.text}")
+507             flash("Ошибка при создании платежа на стороне кассы.", "error")
+508             return redirect(url_for("dashboard"))
+509             
+510     except Exception as e:
+511         logging.error(f"Platega create_invoice error: {e}")
+512         flash("Ошибка при создании платежа.", "error")
+513         return redirect(url_for("dashboard"))
+514 
+515 # --- Remnawave API Client ---
+516 
+517 def get_remnawave_squad_uuid(api_key):
+518     try:
+519         resp = requests.get(
+520             "https://panel.jointhevoid.ru/api/users",
+521             headers={"Authorization": f"Bearer {api_key}"},
+522             timeout=5
+523         )
+524         if resp.status_code == 200:
+525             users = resp.json().get("response", [])
+526             for u in users:
+527                 if isinstance(u, dict) and u.get("activeInternalSquads"):
+528                     return u["activeInternalSquads"][0]["uuid"]
+529     except Exception as e:
+530         logging.error(f"Error fetching squad: {e}")
+531     return "82e7d898-a7ee-4826-9f9d-ae9eb0933ed9"  # Fallback to known Default-Squad
+532 
+533 def remnawave_create_or_extend_user(username, expire_date_str):
+534     api_key = os.environ.get("RW_API_KEY")
+535     if not api_key:
+536         return None
+537         
+538     headers = {
+539         "Authorization": f"Bearer {api_key}",
+540         "Content-Type": "application/json"
+541     }
+542     
+543     # expire_date_str is YYYY-MM-DD HH:MM:SS
+544     expire_dt = datetime.strptime(expire_date_str, "%Y-%m-%d %H:%M:%S")
+545     # Remnawave expects ISO 8601 with Z
+546     expire_iso = expire_dt.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+547     
+548     # Check if user already exists
+549     users_resp = requests.get("https://panel.jointhevoid.ru/api/users", headers=headers, timeout=5)
+550     existing_user = None
+551     if users_resp.status_code == 200:
+552         rw_data = users_resp.json().get("response", {})
+553         rw_users = rw_data.get("users", []) if isinstance(rw_data, dict) else []
+554         for u in rw_users:
+555             if isinstance(u, dict) and u.get("username") == username:
+556                 existing_user = u
+557                 break
+558                 
+559     if existing_user:
+560         # Extend user
+561         update_payload = {
+562             "status": "ACTIVE",
+563             "expireAt": expire_iso
+564         }
+565         user_uuid = existing_user["uuid"]
+566         resp = requests.put(f"https://panel.jointhevoid.ru/api/users/{user_uuid}", headers=headers, json=update_payload, timeout=5)
+567         if resp.status_code == 200:
+568             return existing_user.get("subscriptionUrl")
+569     else:
+570         # Create user
+571         squad_uuid = get_remnawave_squad_uuid(api_key)
+572         create_payload = {
+573             "username": username,
+574             "status": "ACTIVE",
+575             "trafficLimitBytes": 0,
+576             "trafficLimitStrategy": "NO_RESET",
+577             "expireAt": expire_iso,
+578             "activeInternalSquads": [squad_uuid]
+579         }
+580         resp = requests.post("https://panel.jointhevoid.ru/api/users", headers=headers, json=create_payload, timeout=5)
+581         if resp.status_code == 201:
+582             data = resp.json().get("response", {})
+583             return data.get("subscriptionUrl")
+584             
+585     return None
+586 
+587 @app.route("/payment/platega/webhook", methods=["POST"])
+588 @limiter.exempt
+589 def platega_webhook():
+590     secret_key = os.environ.get("PLATEGA_SECRET_KEY")
+591     
+592     incoming_secret = request.headers.get("X-Secret")
+593     if secret_key and incoming_secret != secret_key:
+594         return "Unauthorized", 401
+595         
+596     try:
+597         data = request.json
+598         if not data:
+599             return "No data", 400
+600             
+601         logging.info(f"Platega webhook payload: {data}")
+602             
+603         status = data.get("status")
+604         pay_id = data.get("payload")
+605         
+606         if status == "CONFIRMED" and pay_id:
+607             invoice = query_one("SELECT * FROM invoices WHERE id = ?", (int(pay_id),))
+608             if invoice and invoice["status"] == "pending":
+609                 execute("UPDATE invoices SET status = 'paid' WHERE id = ?", (invoice["id"],))
+610                 days = invoice["months"] * 30
+611                 add_subscription(invoice["user_id"], days)
+612                 logging.info(f"Invoice {pay_id} marked as PAID via Platega Webhook.")
+613                 
+614         return "OK", 200
+615         
+616     except Exception as e:
+617         logging.error(f"Platega webhook error: {e}")
+618         return "Internal Server Error", 500
+619 
+620 def add_subscription(user_id, days_to_add):
+621     user = query_one("SELECT * FROM users WHERE id = ?", (user_id,))
+622     if not user:
+623         return
+624         
+625     now = datetime.now()
+626     if user["expires_at"]:
+627         try:
+628             current_expires = datetime.strptime(user["expires_at"], "%Y-%m-%d %H:%M:%S")
+629             if current_expires > now:
+630                 new_expires = current_expires + timedelta(days=days_to_add)
+631             else:
+632                 new_expires = now + timedelta(days=days_to_add)
+633         except ValueError:
+634             new_expires = now + timedelta(days=days_to_add)
+635     else:
+636         new_expires = now + timedelta(days=days_to_add)
+637         
+638     expires_str = new_expires.strftime("%Y-%m-%d %H:%M:%S")
+639     
+640     cyrillic_translit = {
+641         'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'zh',
+642         'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
+643         'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'h', 'ц': 'ts',
+644         'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+645     }
+646     
+647     safe_name = user['full_name'].lower()
+648     for cyr, lat in cyrillic_translit.items():
+649         safe_name = safe_name.replace(cyr, lat)
+650         
+651     import re
+652     safe_name = re.sub(r'[^a-zA-Z0-9-]', '-', safe_name)
+653     # Using 'Void-' prefix for all subscriptions consistently
+654     rw_username = f"Void-{user['id']}-{safe_name}"
+655     rw_username = re.sub(r'-+', '-', rw_username).strip('-')
+656     
+657     sub_url = remnawave_create_or_extend_user(rw_username, expires_str)
+658     
+659     if sub_url:
+660         execute(
+661             "UPDATE users SET expires_at = ?, status = ?, subscription_url = ? WHERE id = ?",
+662             (expires_str, "active", sub_url, user["id"])
+663         )
+664         # Notify via bot if tg id is present
+665         if user["telegram_id"]:
+666             try:
+667                 import requests
+668                 bot_token = os.environ.get("TG_BOT_TOKEN")
+669                 if bot_token:
+670                     text = f"✅ Ваша подписка успешно продлена до {expires_str}!"
+671                     requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+672                         "chat_id": user["telegram_id"],
+673                         "text": text
+674                     }, timeout=5)
+675             except Exception as e:
+676                 logging.error(f"Failed to notify user {user_id}: {e}")
+677 
+678 @app.route("/activate-trial", methods=["POST"])
+679 @login_required
+680 def activate_trial():
+681     user = g.user
+682     
+683     if user["status"] == "active" or user["expires_at"]:
+684         flash("У вас уже есть активная подписка.", "error")
+685         return redirect(url_for("dashboard"))
+686         
+687     db = get_db()
+688     cursor = db.execute("UPDATE users SET has_trial_used = 1 WHERE id = ? AND has_trial_used = 0", (user["id"],))
+689     db.commit()
+690     
+691     if cursor.rowcount == 0:
+692         flash("Пробный период уже использован или находится в процессе активации.", "error")
+693         return redirect(url_for("dashboard"))
+694         
+695     # Give 7 days trial if user was referred, else 5 days
+696     days_to_add = 7 if user["referrer_id"] else 5
+697     now = datetime.now()
+698     new_expires = now + timedelta(days=days_to_add)
+699     expires_str = new_expires.strftime("%Y-%m-%d %H:%M:%S")
+700     
+701     # Transliterate cyrillic to latin and sanitize
+702     cyrillic_translit = {
+703         'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'zh',
+704         'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
+705         'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'h', 'ц': 'ts',
+706         'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+707     }
+708     
+709     safe_name = user['full_name'].lower()
+710     for cyr, lat in cyrillic_translit.items():
+711         safe_name = safe_name.replace(cyr, lat)
+712         
+713     import re
+714     safe_name = re.sub(r'[^a-zA-Z0-9-]', '-', safe_name)
+715     rw_username = f"Void-{user['id']}-{safe_name}"
+716     rw_username = re.sub(r'-+', '-', rw_username).strip('-')
+717     
+718     sub_url = remnawave_create_or_extend_user(rw_username, expires_str)
+719     
+720     if sub_url:
+721         execute("UPDATE users SET status = 'active', expires_at = ?, subscription_url = ?, notified_3d=0, notified_1d=0, notified_10h=0, notified_1h=0 WHERE id = ?", 
+722                (expires_str, sub_url, user["id"]))
+723                
+724         telegram_id = user["telegram_id"]
+725         if telegram_id:
+726             bot_token = os.environ.get("BOT_TOKEN")
+727             if bot_token:
+728                 msg = f"<b>Пробный период активирован.</b>\n\nВам предоставлено 5 дней доступа.\nКонфигурация для подключения:\n`{sub_url}`"
+729                 try:
+730                     requests.post(f"http://91.238.123.4:10080/bot{bot_token}/sendMessage", data={
+731                         "chat_id": telegram_id,
+732                         "text": msg,
+733                         "parse_mode": "HTML"
+734                     }, timeout=5)
+735                 except Exception:
+736                     pass
+737         flash("Доступ активирован.", "success")
+738     else:
+739         flash("Ошибка генерации ключа. Обратитесь в поддержку.", "error")
+740         
+741     return redirect(url_for("dashboard"))
+742 
+743 @app.route("/logout")
+744 def logout():
+745     session.clear()
+746     return redirect(url_for("index"))
+747 
+748 
+749 import secrets
+750 
+751 @app.route("/dashboard")
+752 @login_required
+753 def dashboard():
+754     user = dict(g.user) if g.user else {}
+755     if not user["telegram_id"] and not user["tg_link_token"]:
+756         token = secrets.token_urlsafe(16)
+757         execute("UPDATE users SET tg_link_token = ? WHERE id = ?", (token, user["id"]))
+758         user = query_one("SELECT * FROM users WHERE id = ?", (user["id"],))
+759         
+760     has_password = bool(user["password_hash"])
+761     return render_template("dashboard.html", user=user, has_password=has_password)
+762 
+763 
+764 @app.route("/set-password", methods=["POST"])
+765 @login_required
+766 def set_password():
+767     new_login = request.form.get("login", "").strip()
+768     password = request.form.get("password", "")
+769     
+770     if len(password) < 6:
+771         flash("Ваш пароль слишком короткий.", "error")
+772         return redirect(url_for("dashboard"))
+773         
+774     if not new_login or len(new_login) < 3:
+775         flash("Ваш логин слишком короткий.", "error")
+776         return redirect(url_for("dashboard"))
+777         
+778     # Check if login is unique (excluding current user)
+779     existing = query_one("SELECT id FROM users WHERE lower(full_name) = lower(?) AND id != ?", (new_login, g.user["id"]))
+780     if existing:
+781         flash("Этот логин уже занят.", "error")
+782         return redirect(url_for("dashboard"))
+783 
+784     password_hash = generate_password_hash(password)
+785     execute("UPDATE users SET password_hash = ?, full_name = ? WHERE id = ?", (password_hash, new_login, g.user["id"]))
+786     flash("Данные обновлены.", "success")
+787     return redirect(url_for("dashboard"))
+788 
+789 
+790 @app.route("/inst-landing")
+791 def instructions():
+792     return render_template("inst-landing.html")
+793 
+794 
+795 @app.route("/inst-landing/ios")
+796 def instructions_ios():
+797     return render_instruction_page(INSTRUCTION_TEMPLATES["ios"])
+798 
+799 
+800 @app.route("/inst-landing/android")
+801 def instructions_android():
+802     return render_instruction_page(INSTRUCTION_TEMPLATES["android"])
+803 
+804 
+805 @app.route("/inst-landing/windows")
+806 def instructions_windows():
+807     return render_instruction_page(INSTRUCTION_TEMPLATES["windows"])
+808 
+809 
+810 @app.route("/inst-landing/macos")
+811 def instructions_macos():
+812     return render_instruction_page(INSTRUCTION_TEMPLATES["macos"])
+813 
+814 
+815 @app.route("/admin/login", methods=["GET", "POST"])
+816 @limiter.limit("5 per minute")
+817 def admin_login():
+818     if request.method == "POST":
+819         login_value = request.form.get("login", "").strip()
+820         password = request.form.get("password", "")
+821 
+822         error = "Вы ввели неверный логин или пароль."
+823 
+824         if not ADMIN_PASSWORD_HASH:
+825             flash(
+826                 "Конфигурация сервера неполная. Задай ADMIN_PASSWORD_HASH.",
+827                 "error",
+828             )
+829             return render_template("admin_login.html")
+830 
+831         if login_value == ADMIN_LOGIN and check_password_hash(
+832             ADMIN_PASSWORD_HASH, password
+833         ):
+834             session.clear()
+835             session.permanent = True
+836             session["is_admin"] = True
+837             return redirect(url_for("admin_panel"))
+838 
+839         flash(error, "error")
+840 
+841     return render_template("admin_login.html")
+842 
+843 
+844 @app.route("/admin/broadcast", methods=["POST"])
+845 @admin_required
+846 def admin_broadcast():
+847     text = request.form.get("text", "").strip()
+848     attach_image = request.form.get("attach_image") == "1"
+849     
+850     bot_token = os.environ.get("BOT_TOKEN") or os.environ.get("TG_BOT_TOKEN")
+851     if not bot_token:
+852         flash("Bot token not configured", "danger")
+853         return redirect(url_for("admin_panel"))
+854         
+855     users = query_all("SELECT telegram_id FROM users WHERE telegram_id IS NOT NULL")
+856     
+857     success_count = 0
+858     import time
+859     for u in users:
+860         tg_id = u["telegram_id"]
+861         try:
+862             if attach_image:
+863                 with open("/opt/void/static/img/fill_bot.jpg", "rb") as f:
+864                     resp = requests.post(
+865                         f"http://91.238.123.4:10080/bot{bot_token}/sendPhoto",
+866                         data={"chat_id": tg_id, "caption": text, "parse_mode": "HTML"},
+867                         files={"photo": f},
+868                         timeout=10
+869                     )
+870             else:
+871                 resp = requests.post(
+872                     f"http://91.238.123.4:10080/bot{bot_token}/sendMessage",
+873                     json={"chat_id": tg_id, "text": text, "parse_mode": "HTML"},
+874                     timeout=5
+875                 )
+876             if resp.status_code == 200:
+877                 success_count += 1
+878             time.sleep(0.05) # Prevent rate limiting
+879         except Exception as e:
+880             print(f"Failed to send broadcast to {tg_id}: {e}")
+881             
+882     flash(f"Рассылка успешно отправлена {success_count} пользователям", "success")
+883     return redirect(url_for("admin_panel"))
+884 
+885 @app.route("/admin/logout")
+886 def admin_logout():
+887     session.clear()
+888     return redirect(url_for("admin_login"))
+889 
+890 
+891 @app.route("/admin")
+892 @admin_required
+893 def admin_panel():
+894     q = request.args.get('q', '').strip()
+895     
+896     # Auto-expire any past due subscriptions for accurate admin display
+897     execute("UPDATE users SET status = 'expired' WHERE status IN ('active', 'trial') AND expires_at IS NOT NULL AND expires_at != 'Безлимит' AND expires_at < datetime('now')")
+898     
+899     query = """
+900         SELECT 
+901             u.id, u.full_name, u.status, u.subscription_url, u.instructions_url, 
+902             u.expires_at, u.created_at, u.is_legacy, u.telegram_id, u.referrer_id,
+903             (SELECT COUNT(*) FROM users r WHERE r.referrer_id = u.id) as ref_count,
+904             (SELECT COUNT(*) FROM users r WHERE r.referrer_id = u.id AND r.has_brought_referral_bonus = 1) * 7 as ref_bonus_days
+905         FROM users u
+906     """
+907     params = []
+908     if q:
+909         query += " WHERE u.full_name LIKE ? OR u.telegram_id LIKE ? OR u.id = ?"
+910         params.extend([f"%{q}%", f"%{q}%", q])
+911         
+912     query += " ORDER BY u.created_at DESC, u.id DESC"
+913     
+914     users = [dict(u) for u in query_all(query, params)]
+915     
+916     # Fetch active devices/online status from Remnawave
+917     api_key = os.environ.get("RW_API_KEY")
+918     rw_users = {}
+919     if api_key:
+920         try:
+921             resp = requests.get(
+922                 "https://panel.jointhevoid.ru/api/users",
+923                 headers={"Authorization": f"Bearer {api_key}"},
+924                 timeout=5
+925             )
+926             if resp.status_code == 200:
+927                 resp_data = resp.json().get("response", {})
+928                 if isinstance(resp_data, dict):
+929                     users_list = resp_data.get("users", [])
+930                 elif isinstance(resp_data, list):
+931                     users_list = resp_data
+932                 else:
+933                     users_list = []
+934                     
+935                 for ru in users_list:
+936                     if isinstance(ru, dict):
+937                         sub_url = ru.get("subscriptionUrl")
+938                         online_at = ru.get("userTraffic", {}).get("onlineAt")
+939                         if sub_url and online_at:
+940                             # Check if online within last 5 minutes
+941                             try:
+942                                 online_dt = datetime.fromisoformat(online_at.replace("Z", "+00:00"))
+943                                 if datetime.now(timezone.utc) - online_dt < timedelta(minutes=5):
+944                                     rw_users[sub_url] = 1 # Consider as 1 active device/online
+945                             except:
+946                                 pass
+947         except Exception as e:
+948             logging.error(f"Error fetching remnawave users for admin: {e}")
+949             
+950     # Attach rw_users data
+951     for u in users:
+952         sub_url = u.get("subscription_url")
+953         u["active_devices"] = rw_users.get(sub_url, 0)
+954 
+955     return render_template("admin_panel.html", users=users)
+956 
+957 
+958 @app.route("/admin/user/<int:user_id>/update", methods=["POST"])
+959 @admin_required
+960 def admin_update_user(user_id):
+961     full_name = request.form.get("full_name", "").strip()
+962     status = request.form.get("status", "").strip()
+963     subscription_url = request.form.get("subscription_url", "").strip() or None
+964     instructions_url = request.form.get("instructions_url", "").strip() or "/inst-landing"
+965     expires_at = request.form.get("expires_at", "").strip() or None
+966 
+967     allowed_statuses = {"new", "pending", "active", "expired"}
+968     if status not in allowed_statuses:
+969         flash("Недопустимый статус.", "error")
+970         return redirect(url_for("admin_panel"))
+971 
+972     if not full_name:
+973         flash("ФИО не может быть пустым.", "error")
+974         return redirect(url_for("admin_panel"))
+975 
+976     execute(
+977         """
+978         UPDATE users
+979         SET full_name = ?, status = ?, subscription_url = ?, instructions_url = ?, expires_at = ?
+980         WHERE id = ?
+981         """,
+982         (full_name, status, subscription_url, instructions_url, expires_at, user_id),
+983     )
+984     flash("Пользователь обновлён.", "success")
+985     return redirect(url_for("admin_panel"))
+986 
+987 
+988 @app.route("/admin/user/<int:user_id>/delete", methods=["POST"])
+989 @admin_required
+990 def admin_delete_user(user_id):
+991     execute("DELETE FROM users WHERE id = ?", (user_id,))
+992     flash("Пользователь удалён.", "success")
+993     return redirect(url_for("admin_panel"))
+994 
+995 
+996 if __name__ == "__main__":
+997     app.run(debug=True)

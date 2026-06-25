@@ -1,0 +1,68 @@
+65: def get_db():
+74: def close_db(error=None):
+80: def init_db():
+87: def query_one(query, params=()):
+92: def query_all(query, params=()):
+97: def execute(query, params=()):
+103: def login_required(view):
+114: def admin_required(view):
+124: def render_instruction_page(template_name):
+134: def load_logged_in_user():
+160: def inject_globals():
+169: @app.route("/terms")
+170: def terms():
+173: @app.route("/privacy")
+174: def privacy():
+177: @app.route('/favicon.ico')
+178: def favicon():
+182: @app.route("/")
+183: def index():
+189: @app.route("/webapp")
+190: def webapp():
+223: @app.route("/register", methods=["GET", "POST"])
+225: def register():
+278: @app.route("/login", methods=["GET", "POST"])
+280: def login():
+309: def check_telegram_authorization(auth_data: dict) -> bool:
+330: @app.route("/auth/telegram")
+331: def auth_telegram():
+358: def check_webapp_authorization(init_data: str) -> bool:
+381: @app.route("/auth/webapp", methods=["POST"])
+383: def auth_webapp():
+443: @app.route("/payment/pay", methods=["POST"])
+445: def payment_pay():
+517: def get_remnawave_squad_uuid(api_key):
+533: def remnawave_create_or_extend_user(username, expire_date_str):
+587: @app.route("/payment/platega/webhook", methods=["POST"])
+589: def platega_webhook():
+620: def add_subscription(user_id, days_to_add):
+678: @app.route("/activate-trial", methods=["POST"])
+680: def activate_trial():
+743: @app.route("/logout")
+744: def logout():
+751: @app.route("/dashboard")
+753: def dashboard():
+764: @app.route("/set-password", methods=["POST"])
+766: def set_password():
+790: @app.route("/inst-landing")
+791: def instructions():
+795: @app.route("/inst-landing/ios")
+796: def instructions_ios():
+800: @app.route("/inst-landing/android")
+801: def instructions_android():
+805: @app.route("/inst-landing/windows")
+806: def instructions_windows():
+810: @app.route("/inst-landing/macos")
+811: def instructions_macos():
+815: @app.route("/admin/login", methods=["GET", "POST"])
+817: def admin_login():
+844: @app.route("/admin/broadcast", methods=["POST"])
+846: def admin_broadcast():
+885: @app.route("/admin/logout")
+886: def admin_logout():
+891: @app.route("/admin")
+893: def admin_panel():
+958: @app.route("/admin/user/<int:user_id>/update", methods=["POST"])
+960: def admin_update_user(user_id):
+988: @app.route("/admin/user/<int:user_id>/delete", methods=["POST"])
+990: def admin_delete_user(user_id):
