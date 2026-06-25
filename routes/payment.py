@@ -109,6 +109,41 @@ def platega_webhook():
                 execute("UPDATE invoices SET status = 'paid' WHERE id = ?", (invoice["id"],))
                 days = invoice["months"] * 30
                 add_subscription(invoice["user_id"], days)
+                
+                # Referral logic
+                user_obj = query_one("SELECT referrer_id, has_brought_referral_bonus FROM users WHERE id = ?", (invoice["user_id"],))
+                if user_obj and user_obj["referrer_id"] and not user_obj["has_brought_referral_bonus"]:
+                    referrer = query_one("SELECT id, telegram_id FROM users WHERE id = ?", (user_obj["referrer_id"],))
+                    if referrer:
+                        bonus_days = 0
+                        amount = invoice["amount"]
+                        if amount == 200:
+                            bonus_days = 7
+                        elif amount == 510:
+                            bonus_days = 15
+                        elif amount == 910:
+                            bonus_days = 30
+                        elif amount == 1800:
+                            bonus_days = 90
+                            
+                        if bonus_days > 0:
+                            add_subscription(referrer["id"], bonus_days)
+                            execute("UPDATE users SET has_brought_referral_bonus = 1 WHERE id = ?", (invoice["user_id"],))
+                            logging.info(f"Referral bonus {bonus_days} days added to user {referrer['id']} for paying user {invoice['user_id']}")
+                            
+                            if referrer["telegram_id"]:
+                                bot_token = os.environ.get("BOT_TOKEN")
+                                if bot_token:
+                                    msg = f"🎉 <b>Бонус за друга!</b>\n\nВаш друг только что оплатил подписку, и вам начислено <b>{bonus_days}</b> бесплатных дней! 🚀"
+                                    try:
+                                        requests.post(f"http://91.238.123.4:10080/bot{bot_token}/sendMessage", data={
+                                            "chat_id": referrer["telegram_id"],
+                                            "text": msg,
+                                            "parse_mode": "HTML"
+                                        }, timeout=5)
+                                    except Exception:
+                                        pass
+                                        
                 logging.info(f"Invoice {pay_id} marked as PAID via Platega Webhook.")
                 
         return "OK", 200
@@ -184,6 +219,10 @@ def activate_trial():
         flash("У вас уже есть активная подписка.", "error")
         return redirect(url_for("dashboard.dashboard"))
         
+    if not user["telegram_id"]:
+        flash("Для получения пробного периода необходимо привязать Telegram. Это защита от накруток.", "error")
+        return redirect(url_for("dashboard.dashboard"))
+        
     db = get_db()
     cursor = db.execute("UPDATE users SET has_trial_used = 1 WHERE id = ? AND has_trial_used = 0", (user["id"],))
     db.commit()
@@ -225,7 +264,7 @@ def activate_trial():
         if telegram_id:
             bot_token = os.environ.get("BOT_TOKEN")
             if bot_token:
-                msg = f"<b>Пробный период активирован.</b>\n\nВам предоставлено 5 дней доступа.\nКонфигурация для подключения:\n`{sub_url}`"
+                msg = f"<b>Пробный период активирован.</b>\n\nВам предоставлено {days_to_add} дней доступа.\nКонфигурация для подключения:\n`{sub_url}`"
                 try:
                     requests.post(f"http://91.238.123.4:10080/bot{bot_token}/sendMessage", data={
                         "chat_id": telegram_id,

@@ -52,8 +52,13 @@ def dashboard():
         execute("UPDATE users SET tg_link_token = ? WHERE id = ?", (token, user["id"]))
         user = query_one("SELECT * FROM users WHERE id = ?", (user["id"],))
         
+    referrals = query_one("SELECT COUNT(*) as count FROM users WHERE referrer_id = ?", (user["id"],))
+    referrals_paid = query_one("SELECT COUNT(*) as count FROM users WHERE referrer_id = ? AND has_brought_referral_bonus = 1", (user["id"],))
+    
     has_password = bool(user["password_hash"])
-    return render_template("dashboard.html", user=user, has_password=has_password)
+    return render_template("dashboard.html", user=user, has_password=has_password, 
+                           referrals_count=referrals["count"] if referrals else 0,
+                           referrals_paid_count=referrals_paid["count"] if referrals_paid else 0)
 
 
 @dashboard_bp.route("/set-password", methods=["POST"])

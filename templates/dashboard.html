@@ -271,11 +271,21 @@
           <h2 class="dash-card__title">Приглашения</h2>
           <div class="dash-meta">
             <p style="font-size: 0.85rem; line-height: 1.4; color: var(--color-text-dim); margin-bottom: 1rem;">
-              Поделитесь своей пригласительной ссылкой с друзьями: когда кто-то из них совершит первую оплату, мы начислим вам дополнительные 7 дней подписки за каждые 200 ₽ их заказа, а они получат 7 дней пробного периода вместо пяти.
+              Отправьте свою пригласительную ссылку друзьям. Когда друг совершит свою <b>первую оплату</b>, мы начислим вам бесплатные дни подписки (до 90 дней!), а ваш друг получит 7 дней бесплатного триала вместо 5.
             </p>
+            <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 1rem;">
+              <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #fff;">
+                <span style="color: var(--color-text-dim);">Всего регистраций:</span>
+                <b>{{ referrals_count }}</b>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #fff;">
+                <span style="color: var(--color-text-dim);">Оплативших:</span>
+                <b style="color: #ff6b6b;">{{ referrals_paid_count }}</b>
+              </div>
+            </div>
             <div style="display: flex; gap: 8px;">
               <input type="text" id="refLink" value="https://jointhevoid.ru/register?ref={{ user.id }}" readonly style="flex: 1; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 0 12px; border-radius: 8px; font-size: 0.85rem; outline: none;">
-              <button onclick="copyRefLink()" class="dash-btn" style="background: rgba(255, 107, 107, 0.1); border: 1px solid rgba(255, 107, 107, 0.3); color: #ff6b6b; padding: 0 16px; height: 38px;">
+              <button onclick="copyRefLink(event)" class="dash-btn" style="background: rgba(255, 107, 107, 0.1); border: 1px solid rgba(255, 107, 107, 0.3); color: #ff6b6b; padding: 0 16px; height: 38px;">
                 Копировать
               </button>
             </div>
