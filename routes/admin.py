@@ -1,6 +1,7 @@
 import os
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 import requests
+from werkzeug.security import check_password_hash
 from utils import admin_required, query_one, query_all, execute
 import logging
 
