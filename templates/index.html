@@ -34,7 +34,7 @@
   <!-- ===== OVERLAY MENU ===== -->
   <div class="menu-overlay" id="menuOverlay" aria-hidden="true">
     <nav class="menu-overlay__panel" aria-label="Навигация сайта">
-      <a href="{{ url_for('login') }}" class="menu-overlay__link">
+      <a href="{{ url_for('auth.login') }}" class="menu-overlay__link">
         <span class="menu-overlay__text">Войти</span>
         <span class="menu-overlay__icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none">
@@ -44,7 +44,7 @@
         </span>
       </a>
 
-      <a href="{{ url_for('instructions') }}" class="menu-overlay__link">
+      <a href="{{ url_for('dashboard.instructions') }}" class="menu-overlay__link">
         <span class="menu-overlay__text">Инструкция</span>
         <span class="menu-overlay__icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none">
@@ -87,7 +87,7 @@
 
   <!-- ===== TOP MARK (scroll logo) ===== -->
   <header class="top-mark" id="topMark" aria-hidden="true">
-    <a href="{{ url_for('index') }}"><img src="{{ url_for('static', filename='img/minimal_comp.png') }}" alt="Void"></a>
+    <a href="{{ url_for('main.index') }}"><img src="{{ url_for('static', filename='img/minimal_comp.png') }}" alt="Void"></a>
   </header>
 
   <!-- ============================== -->
@@ -111,7 +111,7 @@
       </p>
 
       <div class="hero-actions reveal">
-        <a href="{{ url_for('register') }}" class="hero-cta hero-cta--primary">
+        <a href="{{ url_for('auth.register') }}" class="hero-cta hero-cta--primary">
           <span>Начать</span>
           <span class="hero-cta__arrow" aria-hidden="true">→</span>
         </a>
@@ -230,7 +230,7 @@
             <span class="pricing-card__currency">₽</span>
           </div>
           <div class="pricing-card__per-month">200 ₽/мес</div>
-          <a href="{{ url_for('register') }}" class="pricing-card__btn">Выбрать</a>
+          <a href="{{ url_for('auth.register') }}" class="pricing-card__btn">Выбрать</a>
         </div>
 
         <!-- 3 months -->
@@ -243,7 +243,7 @@
             <span class="pricing-card__currency">₽</span>
           </div>
           <div class="pricing-card__per-month">170 ₽/мес</div>
-          <a href="{{ url_for('register') }}" class="pricing-card__btn">Выбрать</a>
+          <a href="{{ url_for('auth.register') }}" class="pricing-card__btn">Выбрать</a>
         </div>
 
         <!-- 6 months -->
@@ -256,7 +256,7 @@
             <span class="pricing-card__currency">₽</span>
           </div>
           <div class="pricing-card__per-month">160 ₽/мес</div>
-          <a href="{{ url_for('register') }}" class="pricing-card__btn">Выбрать</a>
+          <a href="{{ url_for('auth.register') }}" class="pricing-card__btn">Выбрать</a>
         </div>
 
         <!-- 12 months — recommended -->
@@ -270,7 +270,7 @@
             <span class="pricing-card__currency">₽</span>
           </div>
           <div class="pricing-card__per-month">150 ₽/мес</div>
-          <a href="{{ url_for('register') }}" class="pricing-card__btn pricing-card__btn--primary">Выбрать</a>
+          <a href="{{ url_for('auth.register') }}" class="pricing-card__btn pricing-card__btn--primary">Выбрать</a>
         </div>
       </div>
     </div>
@@ -330,12 +330,12 @@
       <h2 class="entry-title">Будь там, где интернет не заканчивается</h2>
 
       <div class="entry-actions">
-        <a href="{{ url_for('register') }}" class="entry-btn entry-btn--primary">
+        <a href="{{ url_for('auth.register') }}" class="entry-btn entry-btn--primary">
           <span>Начать сейчас</span>
           <span class="entry-btn__arrow" aria-hidden="true">→</span>
         </a>
 
-        <a href="{{ url_for('login') }}" class="entry-btn entry-btn--ghost">
+        <a href="{{ url_for('auth.login') }}" class="entry-btn entry-btn--ghost">
           Войти
         </a>
       </div>
@@ -350,8 +350,8 @@
 
       <div class="entry-footer__meta">
         <span>Void Team</span>
-        <span><a href="{{ url_for('terms') }}" style="color: inherit; text-decoration: underline;" target="_blank">Пользовательское соглашение</a></span>
-        <span><a href="{{ url_for('privacy') }}" style="color: inherit; text-decoration: underline;" target="_blank">Политика конфиденциальности</a></span>
+        <span><a href="{{ url_for('main.terms') }}" style="color: inherit; text-decoration: underline;" target="_blank">Пользовательское соглашение</a></span>
+        <span><a href="{{ url_for('main.privacy') }}" style="color: inherit; text-decoration: underline;" target="_blank">Политика конфиденциальности</a></span>
         <span>Поддержка: <a href="https://t.me/jointhevoid_bot" style="color: inherit; text-decoration: underline;" target="_blank">@jointhevoid_bot</a></span>
         
       </div>

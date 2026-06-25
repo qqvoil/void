@@ -4,12 +4,12 @@
 {% block content %}
 <div class="card">
   <h1>Админ-панель</h1>
-  <p><a href="{{ url_for('admin_logout') }}">Выйти из админки</a></p>
+  <p><a href="{{ url_for('admin.admin_logout') }}">Выйти из админки</a></p>
 </div>
 
 <div class="card">
   <h2>Рассылка новостей</h2>
-  <form method="post" action="{{ url_for('admin_broadcast') }}">
+  <form method="post" action="{{ url_for('admin.admin_broadcast') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     
     <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; cursor: pointer;">
@@ -28,18 +28,18 @@
 
 <div class="card">
   <h2>Поиск пользователей</h2>
-  <form method="get" action="{{ url_for('admin_panel') }}" style="display: flex; gap: 10px;">
+  <form method="get" action="{{ url_for('admin.admin_panel') }}" style="display: flex; gap: 10px;">
     <input type="text" name="q" value="{{ request.args.get('q', '') }}" placeholder="Поиск по ID, Telegram ID или имени..." style="flex: 1;">
     <button type="submit" style="width: auto;">Найти</button>
     {% if request.args.get('q') %}
-      <a href="{{ url_for('admin_panel') }}" class="btn" style="text-decoration: none; padding: 10px 15px; border-radius: 8px; background: rgba(255, 255, 255, 0.1); color: #fff;">Сбросить</a>
+      <a href="{{ url_for('admin.admin_panel') }}" class="btn" style="text-decoration: none; padding: 10px 15px; border-radius: 8px; background: rgba(255, 255, 255, 0.1); color: #fff;">Сбросить</a>
     {% endif %}
   </form>
 </div>
 
 {% for user in users %}
 <div class="card">
-  <form method="post" action="{{ url_for('admin_update_user', user_id=user.id) }}">
+  <form method="post" action="{{ url_for('admin.admin_update_user', user_id=user.id) }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
       <div>
@@ -88,7 +88,7 @@
     </div>
   </form>
 
-  <form method="post" action="{{ url_for('admin_delete_user', user_id=user.id) }}">
+  <form method="post" action="{{ url_for('admin.admin_delete_user', user_id=user.id) }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     <button type="submit" onclick="return confirm('Удалить пользователя?')">Удалить пользователя</button>
   </form>

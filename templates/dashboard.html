@@ -21,7 +21,7 @@
 <div class="dash-page">
   <header class="dash-topbar">
     <div class="dash-topbar__brand">
-      <a href="{{ url_for('index') }}"><img src="{{ url_for('static', filename='img/minimal_comp.png') }}" alt="Void"></a>
+      <a href="{{ url_for('main.index') }}"><img src="{{ url_for('static', filename='img/minimal_comp.png') }}" alt="Void"></a>
     </div>
 
     <div class="dash-menu" id="dashMenu">
@@ -45,7 +45,7 @@
   <div class="dash-menu-overlay" id="dashMenuOverlay" aria-hidden="true">
     <div class="dash-menu-panel">
       <nav class="dash-menu-list" aria-label="Навигация кабинета">
-        <a href="{{ url_for('instructions') }}" class="dash-menu-link">
+        <a href="{{ url_for('dashboard.instructions') }}" class="dash-menu-link">
           <span class="dash-menu-link__text">Инструкция</span>
           <span class="dash-menu-link__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none">
@@ -84,7 +84,7 @@
           </span>
         </a>
 
-        <a href="{{ url_for('logout') }}" class="dash-menu-link">
+        <a href="{{ url_for('auth.logout') }}" class="dash-menu-link">
           <span class="dash-menu-link__text">Выйти</span>
           <span class="dash-menu-link__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none">
@@ -138,7 +138,7 @@
               </button>
             {% endif %}
 
-            <a href="{{ url_for('instructions') }}" class="dash-btn dash-btn--ghost">
+            <a href="{{ url_for('dashboard.instructions') }}" class="dash-btn dash-btn--ghost">
               Инструкция по установке
             </a>
             <a href="https://t.me/qqv0il" target="_blank" class="dash-btn dash-btn--ghost">
@@ -168,7 +168,7 @@
               <p style="color: rgba(255,255,255,0.8); margin-bottom: 1rem; font-size: 0.95rem;">
                 Мы предлагаем вам активировать пробный период на 5 дней, чтобы вы могли лично оценить качество и скорость нашего соединения.
               </p>
-              <form action="{{ url_for('activate_trial') }}" method="POST">
+              <form action="{{ url_for('payment.activate_trial') }}" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <button type="submit" class="dash-btn" style="width: 100%; justify-content: center; background: #4CAF50; color: white; border: none;">
                   Активировать
@@ -180,7 +180,7 @@
 
           {% if raw_status != 'active' and raw_status != 'pending' %}
           <div style="margin-top: 2rem;">
-            <form action="{{ url_for('payment_pay') }}" method="POST">
+            <form action="{{ url_for('payment.payment_pay') }}" method="POST">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
               <p style="font-size: 0.9rem; color: rgba(240, 234, 229, 0.48); margin-bottom: 0.5rem;">Выберите тариф:</p>
               
@@ -338,7 +338,7 @@
       <p class="dash-card__text">
         Вы зарегистрировались через Telegram. Задайте логин и пароль, чтобы всегда иметь доступ на сайт, даже если Telegram будет заблокирован.
       </p>
-      <form action="{{ url_for('set_password') }}" method="POST" class="dash-actions" style="margin-top: 18px; flex-wrap: wrap;">
+      <form action="{{ url_for('dashboard.set_password') }}" method="POST" class="dash-actions" style="margin-top: 18px; flex-wrap: wrap;">
         <input type="text" name="login" value="{{ user.full_name }}" placeholder="Придумайте логин" required style="flex: 1; min-width: 180px; height: 54px; padding: 0 18px; border-radius: 999px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.14); color: #fff; font-size: 0.95rem;">
         <input type="password" name="password" placeholder="Придумайте пароль" required style="flex: 1; min-width: 180px; height: 54px; padding: 0 18px; border-radius: 999px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.14); color: #fff; font-size: 0.95rem;">
         <button type="submit" class="dash-btn" style="flex: 1; min-width: 140px;">Сохранить</button>
@@ -349,8 +349,8 @@
     <footer class="dash-footer">
       <div class="footer-links" style="display: flex; gap: 20px; color: rgba(255,255,255,0.5); font-size: 14px; justify-content: center; width: 100%;">
         <span>Void Team</span>
-        <span><a href="{{ url_for('terms') }}" style="color: inherit; text-decoration: underline;" target="_blank">Пользовательское соглашение</a></span>
-        <span><a href="{{ url_for('privacy') }}" style="color: inherit; text-decoration: underline;" target="_blank">Политика конфиденциальности</a></span>
+        <span><a href="{{ url_for('main.terms') }}" style="color: inherit; text-decoration: underline;" target="_blank">Пользовательское соглашение</a></span>
+        <span><a href="{{ url_for('main.privacy') }}" style="color: inherit; text-decoration: underline;" target="_blank">Политика конфиденциальности</a></span>
         <span>Поддержка: <a href="https://t.me/jointhevoid_bot" style="color: inherit; text-decoration: underline;" target="_blank">@jointhevoid_bot</a></span>
       </div>
     </footer>

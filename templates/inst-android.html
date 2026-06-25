@@ -619,7 +619,7 @@
 <div class="inst-page">
   <header class="inst-topbar">
     <div class="inst-topbar__brand">
-      <a href="{{ url_for('index') }}"><img src="{{ url_for('static', filename='img/minimal_comp.png') }}" alt="Void"></a>
+      <a href="{{ url_for('main.index') }}"><img src="{{ url_for('static', filename='img/minimal_comp.png') }}" alt="Void"></a>
     </div>
 
     <div class="inst-menu" id="instMenu">
@@ -643,7 +643,7 @@
   <div class="inst-menu-overlay" id="instMenuOverlay" aria-hidden="true">
     <div class="inst-menu-panel">
       <nav class="inst-menu-list" aria-label="Навигация по инструкциям">
-        <a href="{{ url_for('index') }}" class="inst-menu-link">
+        <a href="{{ url_for('main.index') }}" class="inst-menu-link">
           <span class="inst-menu-link__text">Главная</span>
           <span class="inst-menu-link__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none">
@@ -652,7 +652,7 @@
           </span>
         </a>
 
-        <a href="{{ url_for('instructions') }}" class="inst-menu-link">
+        <a href="{{ url_for('dashboard.instructions') }}" class="inst-menu-link">
           <span class="inst-menu-link__text">Все устройства</span>
           <span class="inst-menu-link__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none">
@@ -662,7 +662,7 @@
         </a>
 
         {% if current_user %}
-        <a href="{{ url_for('dashboard') }}" class="inst-menu-link">
+        <a href="{{ url_for('dashboard.dashboard') }}" class="inst-menu-link">
           <span class="inst-menu-link__text">Кабинет</span>
           <span class="inst-menu-link__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none">
@@ -672,7 +672,7 @@
           </span>
         </a>
         {% else %}
-        <a href="{{ url_for('login') }}" class="inst-menu-link">
+        <a href="{{ url_for('auth.login') }}" class="inst-menu-link">
           <span class="inst-menu-link__text">Войти</span>
           <span class="inst-menu-link__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none">
@@ -734,7 +734,7 @@
               Скачать v2rayTun
             </a>
 
-            <a href="{{ url_for('dashboard') }}" class="inst-action-btn">
+            <a href="{{ url_for('dashboard.dashboard') }}" class="inst-action-btn">
               Открыть кабинет
             </a>
           </div>
