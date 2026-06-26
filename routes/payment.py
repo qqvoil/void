@@ -222,12 +222,13 @@ def add_subscription(user_id, days_to_add):
         if user["telegram_id"]:
             try:
                 import requests
-                bot_token = os.environ.get("TG_BOT_TOKEN")
+                bot_token = os.environ.get("BOT_TOKEN")
                 if bot_token:
                     text = f"✅ Ваша подписка успешно продлена до {expires_str}!"
-                    requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+                    requests.post(f"http://91.238.123.4:10080/bot{bot_token}/sendMessage", data={
                         "chat_id": user["telegram_id"],
-                        "text": text
+                        "text": text,
+                        "parse_mode": "HTML"
                     }, timeout=5)
             except Exception as e:
                 logging.error(f"Failed to notify user {user_id}: {e}")
