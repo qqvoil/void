@@ -4,7 +4,7 @@ import requests
 import hashlib
 from datetime import datetime, timedelta, timezone
 from flask import Blueprint, request, redirect, url_for, flash, g
-from utils import query_one, execute, login_required, get_remnawave_squad_uuid, remnawave_create_or_extend_user
+from utils import query_one, execute, login_required, get_remnawave_squad_uuid, remnawave_create_or_extend_user, get_db
 from extensions import csrf, limiter
 import logging
 
