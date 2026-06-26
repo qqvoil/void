@@ -166,7 +166,11 @@
             <div style="margin-top: 1.5rem; padding: 1.5rem; background: rgba(76, 175, 80, 0.1); border: 1px solid rgba(76, 175, 80, 0.3); border-radius: 12px; text-align: center;">
               <h3 style="color: #4CAF50; margin-bottom: 0.5rem; font-size: 1.2rem;">Пробный период</h3>
               <p style="color: rgba(255,255,255,0.8); margin-bottom: 1rem; font-size: 0.95rem;">
-                Мы предлагаем вам активировать пробный период на 5 дней, чтобы вы могли лично оценить качество и скорость нашего соединения.
+                {% if user.referrer_id %}
+                  Вы зарегистрировались по приглашению друга, поэтому мы дарим вам <b>расширенный пробный период на 7 дней</b> (вместо 5)! Оцените качество и скорость нашего VPN абсолютно бесплатно.
+                {% else %}
+                  Мы предлагаем вам активировать пробный период на 5 дней, чтобы вы могли лично оценить качество и скорость нашего соединения абсолютно бесплатно.
+                {% endif %}
               </p>
               <form action="{{ url_for('payment.activate_trial') }}" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
