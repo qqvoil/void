@@ -120,11 +120,11 @@ def remnawave_create_or_extend_user(username, expire_date_str):
     if existing_user:
         # Extend user
         update_payload = {
+            "uuid": existing_user["uuid"],
             "status": "ACTIVE",
             "expireAt": expire_iso
         }
-        user_uuid = existing_user["uuid"]
-        resp = requests.put(f"https://panel.jointhevoid.ru/api/users/{user_uuid}", headers=headers, json=update_payload, timeout=5)
+        resp = requests.patch("https://panel.jointhevoid.ru/api/users", headers=headers, json=update_payload, timeout=5)
         if resp.status_code == 200:
             return existing_user.get("subscriptionUrl")
     else:
