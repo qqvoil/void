@@ -1145,7 +1145,7 @@ button, input, select, textarea {
   position: relative;
   min-height: 100vh;
   padding: 118px 24px 34px;
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 .dash-page::before {
@@ -1416,7 +1416,7 @@ button, input, select, textarea {
 
 .dash-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.28fr) minmax(300px, 0.72fr);
+  grid-template-columns: minmax(0, 1.28fr) minmax(0, 0.72fr);
   gap: 18px;
   align-items: stretch;
 }
