@@ -110,6 +110,26 @@ async def send_or_update_menu(chat_id: int, text: str, markup: InlineKeyboardMar
         
     user_menus[chat_id] = msg.message_id
 
+async def send_main_menu(telegram_id: int):
+    user = get_user_by_tg(telegram_id)
+    welcome_text = (
+        "<b>Void</b>\n\n"
+        "Добро пожаловать в панель управления, где вы можете управлять своей подпиской.\n\n"
+        "Если у вас возникли вопросы или нужна помощь, нажмите кнопку <b>«Поддержка»</b> ниже, и наш специалист вам ответит.\n\n"
+    )
+    if user:
+        name, status, expires = user["full_name"], user["status"], user["expires_at"]
+        welcome_text += f"Пользователь: {name}\n"
+        welcome_text += f"Статус: {status}\n"
+        if expires:
+            welcome_text += f"Действует до: {expires}\n"
+    else:
+        welcome_text += (
+            "<i>Ваш профиль пока не синхронизирован. Пожалуйста, привяжите Telegram в личном кабинете на сайте.</i>"
+        )
+        
+    await send_or_update_menu(telegram_id, welcome_text, get_main_keyboard(), is_welcome=True)
+
 @dp.message(CommandStart())
 async def command_start_handler(message: types.Message) -> None:
     # Delete the user's /start command to keep chat clean
@@ -139,24 +159,7 @@ async def command_start_handler(message: types.Message) -> None:
                 get_main_keyboard()
             )
     else:
-        user = get_user_by_tg(telegram_id)
-        welcome_text = (
-            "<b>Void</b>\n\n"
-            "Добро пожаловать в панель управления, где вы можете управлять своей подпиской.\n\n"
-            "Если у вас возникли вопросы или нужна помощь, нажмите кнопку <b>«Поддержка»</b> ниже, и наш специалист вам ответит.\n\n"
-        )
-        if user:
-            name, status, expires = user["full_name"], user["status"], user["expires_at"]
-            welcome_text += f"Пользователь: {name}\n"
-            welcome_text += f"Статус: {status}\n"
-            if expires:
-                welcome_text += f"Действует до: {expires}\n"
-        else:
-            welcome_text += (
-                "<i>Ваш профиль пока не синхронизирован. Пожалуйста, привяжите Telegram в личном кабинете на сайте.</i>"
-            )
-            
-        await send_or_update_menu(telegram_id, welcome_text, get_main_keyboard(), is_welcome=True)
+        await send_main_menu(telegram_id)
 
 @dp.callback_query(F.data == "support")
 async def support_callback(callback: types.CallbackQuery):
@@ -175,15 +178,19 @@ async def referral_callback(callback: types.CallbackQuery):
         "<b>Реферальная программа</b>\n\n"
         "Вы можете поделиться своей персональной ссылкой с друзьями. При их первой оплате вы автоматически получите дополнительные 7 дней подписки за каждые 200 ₽ их заказа.\n\n"
         "Ваш друг также получит расширенный семидневный пробный период.\n\n"
-        f"Ваша ссылка:\n`{ref_link}`"
+        "Нажмите на ссылку ниже, чтобы скопировать её:\n"
+        f"<code>{ref_link}</code>"
     )
     
-    # Check if this menu is already displaying referral text
-    try:
-        await bot.edit_message_text(msg, chat_id=callback.message.chat.id, message_id=callback.message.message_id, parse_mode="HTML", reply_markup=get_main_keyboard())
-    except Exception:
-        # Message hasn't changed
-        pass
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="« Назад", callback_data="back_to_main"))
+    
+    await send_or_update_menu(telegram_id, msg, builder.as_markup(), is_welcome=False)
+    await callback.answer()
+
+@dp.callback_query(F.data == "back_to_main")
+async def back_to_main_callback(callback: types.CallbackQuery):
+    await send_main_menu(callback.from_user.id)
     await callback.answer()
 
 import re
