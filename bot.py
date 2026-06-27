@@ -164,6 +164,36 @@ async def command_start_handler(message: types.Message) -> None:
 @dp.callback_query(F.data == "support")
 async def support_callback(callback: types.CallbackQuery):
     telegram_id = callback.from_user.id
+    
+    await callback.answer()
+    
+    existing_topic_id = get_existing_topic(telegram_id)
+    
+    if existing_topic_id:
+        msg = (
+            "🎟 <b>Обращение в поддержку</b>\n\n"
+            "У вас уже есть открытый тикет!\n\n"
+            "Пожалуйста, просто отправьте ваш вопрос или опишите проблему <b>следующим сообщением</b> прямо в этот чат.\n\n"
+            "Мы ответим вам здесь же в кратчайшие сроки."
+        )
+        builder = InlineKeyboardBuilder()
+        builder.row(InlineKeyboardButton(text="« Назад в меню", callback_data="back_to_main"))
+        await send_or_update_menu(telegram_id, msg, builder.as_markup(), is_welcome=False)
+    else:
+        msg = (
+            "🎟 <b>Создание обращения</b>\n\n"
+            "Вы собираетесь открыть новый тикет в службу поддержки.\n"
+            "Специалист ответит вам прямо в этом чате.\n\n"
+            "Вы уверены, что хотите создать обращение?"
+        )
+        builder = InlineKeyboardBuilder()
+        builder.row(InlineKeyboardButton(text="Создать тикет", callback_data="create_ticket"))
+        builder.row(InlineKeyboardButton(text="« Отмена", callback_data="back_to_main"))
+        await send_or_update_menu(telegram_id, msg, builder.as_markup(), is_welcome=False)
+
+@dp.callback_query(F.data == "create_ticket")
+async def create_ticket_callback(callback: types.CallbackQuery):
+    telegram_id = callback.from_user.id
     username = f"@{callback.from_user.username}" if callback.from_user.username else "Без юзернейма"
     full_name = callback.from_user.full_name or "Гость"
     
@@ -210,6 +240,24 @@ async def referral_callback(callback: types.CallbackQuery):
 async def back_to_main_callback(callback: types.CallbackQuery):
     await send_main_menu(callback.from_user.id)
     await callback.answer()
+
+def get_existing_topic(telegram_id: int) -> int:
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT topic_id FROM users WHERE telegram_id = ?", (telegram_id,))
+    user_row = cursor.fetchone()
+    
+    topic_id = None
+    if user_row and user_row[0]:
+        topic_id = user_row[0]
+    else:
+        cursor.execute("SELECT topic_id FROM support_topics WHERE telegram_id = ?", (telegram_id,))
+        topic_row = cursor.fetchone()
+        if topic_row and topic_row[0]:
+            topic_id = topic_row[0]
+            
+    conn.close()
+    return topic_id
 
 async def ensure_topic(telegram_id: int, username: str, full_name: str) -> int:
     admin_group_id_str = os.environ.get("ADMIN_GROUP_ID")
