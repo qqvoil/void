@@ -163,7 +163,25 @@ async def command_start_handler(message: types.Message) -> None:
 
 @dp.callback_query(F.data == "support")
 async def support_callback(callback: types.CallbackQuery):
-    await callback.answer("Вы можете написать свой вопрос прямо в этот чат, и мы вам поможем.", show_alert=True)
+    telegram_id = callback.from_user.id
+    username = f"@{callback.from_user.username}" if callback.from_user.username else "Без юзернейма"
+    full_name = callback.from_user.full_name or "Гость"
+    
+    await callback.answer()
+    
+    topic_id = await ensure_topic(telegram_id, username, full_name)
+    
+    msg = (
+        "🎟 <b>Обращение в поддержку</b>\n\n"
+        "Служба поддержки на связи! Ваш тикет готов.\n\n"
+        "Пожалуйста, отправьте ваш вопрос или опишите проблему <b>следующим сообщением</b> прямо в этот чат.\n\n"
+        "Мы ответим вам здесь же в кратчайшие сроки."
+    )
+    
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="« Назад в меню", callback_data="back_to_main"))
+    
+    await send_or_update_menu(telegram_id, msg, builder.as_markup(), is_welcome=False)
 
 @dp.callback_query(F.data == "referral")
 async def referral_callback(callback: types.CallbackQuery):
@@ -193,7 +211,52 @@ async def back_to_main_callback(callback: types.CallbackQuery):
     await send_main_menu(callback.from_user.id)
     await callback.answer()
 
-import re
+async def ensure_topic(telegram_id: int, username: str, full_name: str) -> int:
+    admin_group_id_str = os.environ.get("ADMIN_GROUP_ID")
+    if not admin_group_id_str:
+        return None
+    admin_group_id = int(admin_group_id_str)
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, topic_id, full_name FROM users WHERE telegram_id = ?", (telegram_id,))
+    user_row = cursor.fetchone()
+    
+    topic_id = None
+    
+    if user_row:
+        db_id, topic_id, db_full_name = user_row
+        if not topic_id:
+            try:
+                topic = await bot.create_forum_topic(chat_id=admin_group_id, name=f"[{db_id}] {db_full_name}")
+                topic_id = topic.message_thread_id
+                cursor.execute("UPDATE users SET topic_id = ? WHERE id = ?", (topic_id, db_id))
+                conn.commit()
+                
+                user_info = f"Новое обращение от: {db_full_name} ({username})\nID: {telegram_id}\nDB ID: {db_id}"
+                await bot.send_message(admin_group_id, user_info, message_thread_id=topic_id)
+            except Exception as e:
+                logging.error(f"Failed to create topic: {e}")
+    else:
+        cursor.execute("SELECT topic_id FROM support_topics WHERE telegram_id = ?", (telegram_id,))
+        topic_row = cursor.fetchone()
+        
+        if topic_row:
+            topic_id = topic_row[0]
+        else:
+            try:
+                topic = await bot.create_forum_topic(chat_id=admin_group_id, name=f"[Гость] {full_name}")
+                topic_id = topic.message_thread_id
+                cursor.execute("INSERT INTO support_topics (topic_id, telegram_id) VALUES (?, ?)", (topic_id, telegram_id))
+                conn.commit()
+                
+                user_info = f"Новое обращение (Без привязки) от: {full_name} ({username})\nID: {telegram_id}"
+                await bot.send_message(admin_group_id, user_info, message_thread_id=topic_id)
+            except Exception as e:
+                logging.error(f"Failed to create topic for guest: {e}")
+                
+    conn.close()
+    return topic_id
 
 @dp.message()
 async def handle_all_messages(message: types.Message) -> None:
@@ -280,53 +343,14 @@ async def handle_all_messages(message: types.Message) -> None:
         
     telegram_id = message.from_user.id
     username = f"@{message.from_user.username}" if message.from_user.username else "Без юзернейма"
+    full_name = message.from_user.full_name or "Гость"
     
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, topic_id, full_name FROM users WHERE telegram_id = ?", (telegram_id,))
-    user_row = cursor.fetchone()
-    
-    topic_id = None
-    
-    if user_row:
-        db_id, topic_id, full_name = user_row
-        
-        if not topic_id:
-            try:
-                topic = await bot.create_forum_topic(chat_id=admin_group_id, name=f"[{db_id}] {full_name}")
-                topic_id = topic.message_thread_id
-                cursor.execute("UPDATE users SET topic_id = ? WHERE id = ?", (topic_id, db_id))
-                conn.commit()
-                
-                user_info = f"Новое обращение от: {full_name} ({username})\nID: {telegram_id}\nDB ID: {db_id}"
-                await bot.send_message(admin_group_id, user_info, message_thread_id=topic_id)
-            except Exception as e:
-                logging.error(f"Failed to create topic: {e}")
-    else:
-        cursor.execute("SELECT topic_id FROM support_topics WHERE telegram_id = ?", (telegram_id,))
-        topic_row = cursor.fetchone()
-        
-        if topic_row:
-            topic_id = topic_row[0]
-        else:
-            full_name = message.from_user.full_name or "Гость"
-            try:
-                topic = await bot.create_forum_topic(chat_id=admin_group_id, name=f"[Гость] {full_name}")
-                topic_id = topic.message_thread_id
-                cursor.execute("INSERT INTO support_topics (topic_id, telegram_id) VALUES (?, ?)", (topic_id, telegram_id))
-                conn.commit()
-                
-                user_info = f"Новое обращение (Без привязки) от: {full_name} ({username})\nID: {telegram_id}"
-                await bot.send_message(admin_group_id, user_info, message_thread_id=topic_id)
-            except Exception as e:
-                logging.error(f"Failed to create topic for guest: {e}")
-                
-    conn.close()
+    topic_id = await ensure_topic(telegram_id, username, full_name)
     
     if topic_id:
         try:
             await message.copy_to(admin_group_id, message_thread_id=topic_id)
-            await message.answer("Ваше обращение передано в службу поддержки. Мы ответим вам в ближайшее время.")
+            await message.answer("Сообщение доставлено в службу поддержки.")
         except Exception as e:
             logging.error(f"Failed to forward message to topic: {e}")
 
