@@ -292,9 +292,9 @@
                 <b style="color: #ff6b6b;">{{ referrals_paid_count }}</b>
               </div>
             </div>
-            <div style="display: flex; gap: 8px;">
-              <input type="text" id="refLink" value="https://jointhevoid.ru/register?ref={{ user.id }}" readonly style="flex: 1; min-width: 0; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 0 12px; border-radius: 8px; font-size: 0.85rem; outline: none;">
-              <button onclick="copyRefLink(event)" class="dash-btn" style="background: rgba(255, 107, 107, 0.1); border: 1px solid rgba(255, 107, 107, 0.3); color: #ff6b6b; padding: 0 16px; height: 38px;">
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <input type="text" id="refLink" value="https://jointhevoid.ru/register?ref={{ user.id }}" readonly style="width: 100%; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 0 12px; border-radius: 8px; font-size: 0.85rem; height: 38px; outline: none; box-sizing: border-box;">
+              <button onclick="copyRefLink(event)" class="dash-btn" style="width: 100%; background: rgba(255, 107, 107, 0.1); border: 1px solid rgba(255, 107, 107, 0.3); color: #ff6b6b; padding: 0 16px; height: 38px; justify-content: center; box-sizing: border-box;">
                 Копировать
               </button>
             </div>
