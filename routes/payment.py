@@ -283,7 +283,7 @@ def activate_trial():
         if telegram_id:
             bot_token = os.environ.get("BOT_TOKEN")
             if bot_token:
-                msg = f"<b>Пробный период активирован.</b>\n\nВам предоставлено {days_to_add} дней доступа.\nКонфигурация для подключения:\n`{sub_url}`"
+                msg = f"<b>Пробный период активирован.</b>\n\nВам предоставлено {days_to_add} дней доступа.\nКонфигурация для подключения:\n<code>{sub_url}</code>"
                 try:
                     requests.post(f"http://91.238.123.4:10080/bot{bot_token}/sendMessage", data={
                         "chat_id": telegram_id,
