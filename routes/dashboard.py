@@ -8,6 +8,15 @@ from extensions import limiter
 dashboard_bp = Blueprint('dashboard', __name__)
 
 TEMPLATES_DIR = os.path.join(os.path.abspath(os.path.dirname(os.path.dirname(__file__))), "templates")
+
+INSTRUCTION_TEMPLATES = {
+    "ios": "inst-ios.html",
+    "android": "inst-android.html",
+    "windows": "inst-windows.html",
+    "macos": "inst-macos.html",
+    "dev": "inst-dev.html",
+}
+
 def render_instruction_page(template_name):
     template_path = os.path.join(TEMPLATES_DIR, template_name)
     if os.path.exists(template_path):
