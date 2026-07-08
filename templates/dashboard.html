@@ -182,48 +182,51 @@
             {% endif %}
           {% endif %}
 
-          {% if raw_status != 'pending' %}
-          <div style="margin-top: 2rem;">
-            <form action="{{ url_for('payment.payment_pay') }}" method="POST">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-              <p style="font-size: 0.9rem; color: rgba(240, 234, 229, 0.48); margin-bottom: 0.5rem;">Выберите тариф:</p>
-              
-              <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
-                <label style="display: flex; align-items: center; gap: 0.5rem; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; cursor: pointer;">
-                  <input type="radio" name="months" value="1" checked>
-                  <span>1 месяц — 200 ₽</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 0.5rem; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; cursor: pointer;">
-                  <input type="radio" name="months" value="3">
-                  <span>3 месяца — 510 ₽ (скидка 15%)</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 0.5rem; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; cursor: pointer;">
-                  <input type="radio" name="months" value="6">
-                  <span>6 месяцев — 960 ₽ (скидка 20%)</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 0.5rem; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; cursor: pointer;">
-                  <input type="radio" name="months" value="12">
-                  <span>12 месяцев — 1800 ₽ (скидка 25%)</span>
-                </label>
-              </div>
+        {% endif %}
 
-              <label style="display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 1rem;">
-                <span style="font-size: 0.85rem; color: rgba(240, 234, 229, 0.48);">Промокод (если есть):</span>
-                <input type="text" name="promo_code" placeholder="Введите код" style="background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 10px; border-radius: 8px; font-size: 0.9rem; outline: none; width: 100%; box-sizing: border-box;">
+        {% if raw_status != 'pending' %}
+        <div style="margin-top: 2rem;">
+          <form action="{{ url_for('payment.payment_pay') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <p style="font-size: 0.9rem; color: rgba(240, 234, 229, 0.48); margin-bottom: 0.5rem;">Выберите тариф:</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
+              <label style="display: flex; align-items: center; gap: 0.5rem; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; cursor: pointer;">
+                <input type="radio" name="months" value="1" checked>
+                <span>1 месяц — 200 ₽</span>
               </label>
+              <label style="display: flex; align-items: center; gap: 0.5rem; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; cursor: pointer;">
+                <input type="radio" name="months" value="3">
+                <span>3 месяца — 510 ₽ (скидка 15%)</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.5rem; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; cursor: pointer;">
+                <input type="radio" name="months" value="6">
+                <span>6 месяцев — 960 ₽ (скидка 20%)</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.5rem; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; cursor: pointer;">
+                <input type="radio" name="months" value="12">
+                <span>12 месяцев — 1800 ₽ (скидка 25%)</span>
+              </label>
+            </div>
 
-              <button type="submit" class="dash-btn" style="width: 100%; justify-content: center;">
-                {% if raw_status == 'active' %}Продлить подписку{% else %}Перейти к оплате{% endif %}
-              </button>
-            </form>
-          </div>
-          {% endif %}
+            <label style="display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 1rem;">
+              <span style="font-size: 0.85rem; color: rgba(240, 234, 229, 0.48);">Промокод (если есть):</span>
+              <input type="text" name="promo_code" placeholder="Введите код" style="background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 10px; border-radius: 8px; font-size: 0.9rem; outline: none; width: 100%; box-sizing: border-box;">
+            </label>
 
-          <div class="dash-actions" style="margin-top: 1.5rem;">
-            <a href="https://t.me/qqv0il" target="_blank" class="dash-btn dash-btn--ghost" style="width: 100%; justify-content: center;">
-              Техподдержка
-            </a>
-          </div>
+            <button type="submit" class="dash-btn" style="width: 100%; justify-content: center;">
+              {% if raw_status == 'active' %}Продлить подписку{% else %}Перейти к оплате{% endif %}
+            </button>
+          </form>
+        </div>
+        {% endif %}
+
+        {% if raw_status != 'active' %}
+        <div class="dash-actions" style="margin-top: 1.5rem;">
+          <a href="https://t.me/qqv0il" target="_blank" class="dash-btn dash-btn--ghost" style="width: 100%; justify-content: center;">
+            Техподдержка
+          </a>
+        </div>
         {% endif %}
       </div>
 
