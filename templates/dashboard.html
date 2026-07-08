@@ -182,7 +182,7 @@
             {% endif %}
           {% endif %}
 
-          {% if raw_status != 'active' and raw_status != 'pending' %}
+          {% if raw_status != 'pending' %}
           <div style="margin-top: 2rem;">
             <form action="{{ url_for('payment.payment_pay') }}" method="POST">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
@@ -213,7 +213,7 @@
               </label>
 
               <button type="submit" class="dash-btn" style="width: 100%; justify-content: center;">
-                Перейти к оплате
+                {% if raw_status == 'active' %}Продлить подписку{% else %}Перейти к оплате{% endif %}
               </button>
             </form>
           </div>
