@@ -25,6 +25,9 @@ def payment_pay():
         6: 960,
         12: 1800
     }
+    if months not in prices:
+        months = 1
+        
     amount = prices.get(months, 200)
         
     promo_code = request.form.get("promo_code", "").strip().upper()
