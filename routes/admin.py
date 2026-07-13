@@ -1,9 +1,12 @@
 import os
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
 import requests
 from werkzeug.security import check_password_hash
 from utils import admin_required, query_one, query_all, execute
+from extensions import limiter
 import logging
+
+BASE_DIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -11,6 +14,7 @@ ADMIN_LOGIN = os.environ.get("ADMIN_LOGIN", "admin")
 ADMIN_PASSWORD_HASH = os.environ.get("ADMIN_PASSWORD_HASH", "")
 
 @admin_bp.route("/admin/login", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
 def admin_login():
     admin_login_env = os.environ.get("ADMIN_LOGIN", "admin")
     admin_password_hash_env = os.environ.get("ADMIN_PASSWORD_HASH", "")
@@ -21,7 +25,7 @@ def admin_login():
 
         error = "Вы ввели неверный логин или пароль."
 
-        logging.info(f"Admin login attempt for {login_value}. Env hash len: {len(admin_password_hash_env)}")
+        logging.info("Admin login attempt.")
 
         if not admin_password_hash_env:
             flash(
@@ -58,20 +62,22 @@ def admin_broadcast():
     
     success_count = 0
     import time
+    tg_api_server = os.environ.get("TG_API_SERVER", "https://api.telegram.org")
     for u in users:
         tg_id = u["telegram_id"]
         try:
             if attach_image:
-                with open("/opt/void/static/img/fill_bot.jpg", "rb") as f:
+                img_path = os.path.join(BASE_DIR, "static", "img", "fill_bot.jpg")
+                with open(img_path, "rb") as f:
                     resp = requests.post(
-                        f"http://91.238.123.4:10080/bot{bot_token}/sendPhoto",
+                        f"{tg_api_server}/bot{bot_token}/sendPhoto",
                         data={"chat_id": tg_id, "caption": text, "parse_mode": "HTML"},
                         files={"photo": f},
                         timeout=10
                     )
             else:
                 resp = requests.post(
-                    f"http://91.238.123.4:10080/bot{bot_token}/sendMessage",
+                    f"{tg_api_server}/bot{bot_token}/sendMessage",
                     json={"chat_id": tg_id, "text": text, "parse_mode": "HTML"},
                     timeout=5
                 )

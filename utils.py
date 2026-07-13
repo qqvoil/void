@@ -19,7 +19,8 @@ def notify_admin(message):
     bot_token = os.environ.get("BOT_TOKEN") or os.environ.get("TG_BOT_TOKEN")
     if admin_tg_id and bot_token:
         try:
-            requests.post(f"http://91.238.123.4:10080/bot{bot_token}/sendMessage", json={
+            tg_api_server = os.environ.get("TG_API_SERVER", "https://api.telegram.org")
+            requests.post(f"{tg_api_server}/bot{bot_token}/sendMessage", json={
                 "chat_id": admin_tg_id,
                 "text": message,
                 "parse_mode": "HTML"

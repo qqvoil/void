@@ -24,8 +24,9 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN") or os.environ.get("TG_BOT_TOKEN")
 if not BOT_TOKEN:
     raise ValueError("No BOT_TOKEN provided in environment variables")
 
+tg_api_server = os.environ.get("TG_API_SERVER", "https://api.telegram.org")
 session = AiohttpSession(
-    api=TelegramAPIServer.from_base("http://91.238.123.4:10080")
+    api=TelegramAPIServer.from_base(tg_api_server)
 )
 bot = Bot(token=BOT_TOKEN, session=session)
 dp = Dispatcher()

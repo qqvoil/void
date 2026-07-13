@@ -35,11 +35,16 @@ def payment_pay():
     if promo_code:
         promo = query_one("SELECT * FROM promocodes WHERE code = ?", (promo_code,))
         if promo:
-            if promo["max_uses"] == 0 or promo["current_uses"] < promo["max_uses"]:
+            db = get_db()
+            cursor = db.execute(
+                "UPDATE promocodes SET current_uses = current_uses + 1 WHERE code = ? AND (max_uses = 0 OR current_uses < max_uses)",
+                (promo["code"],)
+            )
+            db.commit()
+            if cursor.rowcount > 0:
                 discount = promo["discount_percent"]
                 amount = int(amount * (1 - discount / 100.0))
                 used_promo = promo["code"]
-                execute("UPDATE promocodes SET current_uses = current_uses + 1 WHERE code = ?", (promo["code"],))
             else:
                 flash("Лимит использований промокода исчерпан.", "error")
                 return redirect(url_for("dashboard.dashboard"))
@@ -161,7 +166,8 @@ def platega_webhook():
                                 if bot_token:
                                     msg = f"🎉 <b>Бонус за друга!</b>\n\nВаш друг только что оплатил подписку, и вам начислено <b>{bonus_days}</b> бесплатных дней! 🚀"
                                     try:
-                                        requests.post(f"http://91.238.123.4:10080/bot{bot_token}/sendMessage", data={
+                                        tg_api_server = os.environ.get("TG_API_SERVER", "https://api.telegram.org")
+                                        requests.post(f"{tg_api_server}/bot{bot_token}/sendMessage", data={
                                             "chat_id": referrer["telegram_id"],
                                             "text": msg,
                                             "parse_mode": "HTML"
@@ -228,7 +234,8 @@ def add_subscription(user_id, days_to_add):
                 bot_token = os.environ.get("BOT_TOKEN")
                 if bot_token:
                     text = f"✅ Ваша подписка успешно продлена до {expires_str}!"
-                    requests.post(f"http://91.238.123.4:10080/bot{bot_token}/sendMessage", data={
+                    tg_api_server = os.environ.get("TG_API_SERVER", "https://api.telegram.org")
+                    requests.post(f"{tg_api_server}/bot{bot_token}/sendMessage", data={
                         "chat_id": user["telegram_id"],
                         "text": text,
                         "parse_mode": "HTML"
@@ -288,7 +295,8 @@ def activate_trial():
             if bot_token:
                 msg = f"<b>Пробный период активирован.</b>\n\nВам предоставлено {days_to_add} дней доступа.\nКонфигурация для подключения:\n<code>{sub_url}</code>"
                 try:
-                    requests.post(f"http://91.238.123.4:10080/bot{bot_token}/sendMessage", data={
+                    tg_api_server = os.environ.get("TG_API_SERVER", "https://api.telegram.org")
+                    requests.post(f"{tg_api_server}/bot{bot_token}/sendMessage", data={
                         "chat_id": telegram_id,
                         "text": msg,
                         "parse_mode": "HTML"

@@ -9,13 +9,17 @@ from utils import close_db, query_one, execute
 
 def create_app():
     app = Flask(__name__)
-    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
+    secret_key = os.environ.get("SECRET_KEY")
+    if not secret_key or secret_key == "dev-secret-change-me":
+        raise ValueError("No valid SECRET_KEY set for Flask application")
+    app.config["SECRET_KEY"] = secret_key
     
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))
     app.config["DATABASE"] = os.path.join(BASE_DIR, "users.db")
     
     app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
     app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SECURE"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["SESSION_REFRESH_EACH_REQUEST"] = True
 
@@ -74,6 +78,14 @@ def create_app():
     app.register_blueprint(payment_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(admin_bp)
+
+    @app.after_request
+    def set_security_headers(response):
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'DENY'
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        return response
 
     return app
 
