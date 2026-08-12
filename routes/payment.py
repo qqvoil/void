@@ -122,11 +122,26 @@ def platega_webhook():
         data = request.json
         if not data:
             return "No data", 400
+
+        # Forward NeverSMP webhooks (payload starts with "mc_") to nsmp backend
+        pay_id = data.get("payload", "")
+        if isinstance(pay_id, str) and pay_id.startswith("mc_"):
+            try:
+                fwd_resp = requests.post(
+                    "https://test1.jointhevoid.ru/api/webhook/platega",
+                    json=data,
+                    headers={"X-Secret": secret_key, "Content-Type": "application/json"},
+                    timeout=10
+                )
+                logging.info(f"Forwarded NeverSMP webhook (payload={pay_id}), response: {fwd_resp.status_code}")
+                return fwd_resp.text, fwd_resp.status_code
+            except Exception as e:
+                logging.error(f"Failed to forward NeverSMP webhook: {e}")
+                return "Forward failed", 502
             
         logging.info(f"Platega webhook payload: {data}")
             
         status = data.get("status")
-        pay_id = data.get("payload")
         
         if status == "CONFIRMED" and pay_id:
             invoice = query_one("SELECT * FROM invoices WHERE id = ?", (int(pay_id),))

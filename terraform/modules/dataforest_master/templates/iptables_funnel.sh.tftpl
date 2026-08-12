@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -e
+
+# Очистка таблицы NAT на Dataforest
+iptables -t nat -F PREROUTING
+
+# Создание воронки: перенаправление 10 000 портов в один слушающий сокет Hysteria
+iptables -t nat -A PREROUTING -p udp --dport ${port_hopping_range} -j REDIRECT --to-ports ${hysteria_listen_port}

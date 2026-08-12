@@ -1,0 +1,9 @@
+beget_ip                      = "185.23.34.168"
+dataforest_ip                 = "91.238.123.4"
+ssh_user                      = "root"
+ssh_private_key_path          = "~/.ssh/id_rsa"
+hysteria_listen_port          = 4433
+port_hopping_range            = "40000:50000"
+hysteria_bandwidth_limit_mbps = 15
+tcp_mss_clamp                 = 1360
+vpn_domain                    = "vpn.jointhevoid.ru"

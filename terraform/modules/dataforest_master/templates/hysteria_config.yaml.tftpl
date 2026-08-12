@@ -1,0 +1,28 @@
+listen: :${hysteria_listen_port}
+
+tls:
+  cert: /etc/letsencrypt/live/${vpn_domain}/fullchain.pem
+  key: /etc/letsencrypt/live/${vpn_domain}/privkey.pem
+
+auth:
+  type: userpass
+  userpass:
+    gamer: supersecretpassword
+
+bandwidth:
+  up: ${hysteria_bandwidth_limit_mbps} mbps
+  down: ${hysteria_bandwidth_limit_mbps} mbps
+
+quic:
+  initStreamReceiveWindow: 8388608
+  maxStreamReceiveWindow: 8388608
+  initConnReceiveWindow: 20971520
+  maxConnReceiveWindow: 20971520
+  maxIdleTimeout: 30s
+  keepAlivePeriod: 10s
+
+masquerade:
+  type: proxy
+  proxy:
+    url: https://www.bing.com
+    rewriteHost: true
