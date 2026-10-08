@@ -111,8 +111,19 @@ def remnawave_create_or_extend_user(username, expire_date_str):
     users_resp = requests.get("https://panel.jointhevoid.ru/api/users", headers=headers, timeout=5)
     existing_user = None
     if users_resp.status_code == 200:
-        rw_data = users_resp.json().get("response", {})
-        rw_users = rw_data.get("users", []) if isinstance(rw_data, dict) else []
+        try:
+            rw_data = users_resp.json()
+            if isinstance(rw_data, dict):
+                rw_users = rw_data.get("response", [])
+                if isinstance(rw_users, dict):
+                    rw_users = rw_users.get("users", [])
+            elif isinstance(rw_data, list):
+                rw_users = rw_data
+            else:
+                rw_users = []
+        except Exception:
+            rw_users = []
+            
         for u in rw_users:
             if isinstance(u, dict) and u.get("username") == username:
                 existing_user = u
